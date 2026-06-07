@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { xAlert } from '../../lib/alert';
+import { xAlert } from '../../lib/presentation/alert';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { colors, spacing } from '../../constants/theme';
@@ -21,8 +21,8 @@ import {
   generatePlan,
   type AiProvider,
   type GeneratedPlan,
-} from '../../lib/ai';
-import * as repo from '../../lib/repository';
+} from '../../lib/application/ai';
+import * as repo from '../../lib/data/repository';
 
 export default function PlansScreen() {
   const { db, refreshToken } = useDb();

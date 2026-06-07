@@ -11,12 +11,12 @@ import {
   View,
 } from 'react-native';
 import { PrimaryButton } from '../../components/PrimaryButton';
-import { xAlert } from '../../lib/alert';
+import { xAlert } from '../../lib/presentation/alert';
 import { colors, spacing } from '../../constants/theme';
 import { useDb } from '../../context/DbProvider';
-import { getExerciseByName } from '../../lib/exercises';
-import type { SessionExercise, SetRow } from '../../lib/types';
-import * as repo from '../../lib/repository';
+import { getExerciseByName } from '../../lib/application/exercises';
+import type { SessionExercise, SetRow } from '../../lib/data/types';
+import * as repo from '../../lib/data/repository';
 
 type ExerciseBlock = {
   exercise: SessionExercise;

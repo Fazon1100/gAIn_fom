@@ -70,11 +70,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
-      {/* goals tab hidden – content moved into profile */}
-      <Tabs.Screen
-        name="goals"
-        options={{ href: null }}
-      />
     </Tabs>
   );
 }

@@ -29,7 +29,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: colors.bg },
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'gAIn' }} />
           <Stack.Screen
             name="session/[id]"
             options={{ title: 'Training', presentation: 'card' }}

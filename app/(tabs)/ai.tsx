@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { xAlert } from '../../lib/alert';
+import { xAlert } from '../../lib/presentation/alert';
 import {
   PROVIDER_LABELS,
   PROVIDER_MODELS,
@@ -21,11 +21,11 @@ import {
   sendMessage,
   type AiMessage,
   type AiProvider,
-} from '../../lib/ai';
+} from '../../lib/application/ai';
 import { colors, spacing } from '../../constants/theme';
 import { useDb } from '../../context/DbProvider';
-import * as repo from '../../lib/repository';
-import type { ChatMessage, Profile } from '../../lib/types';
+import * as repo from '../../lib/data/repository';
+import type { ChatMessage, Profile } from '../../lib/data/types';
 
 export default function AiScreen() {
   const { db } = useDb();

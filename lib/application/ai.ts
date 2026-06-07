@@ -1,5 +1,5 @@
 import { EXERCISES } from './exercises';
-import type { Profile } from './types';
+import type { Profile } from '../data/types';
 
 // ── Provider & Model types ────────────────────────────────────────────────────
 
@@ -45,6 +45,16 @@ export interface AiMessage {
 
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
+/** Baut eine kompakte Beschreibung des einzelnen Nutzerziels für die Prompts. */
+function goalBlock(profile: Profile | null): string {
+  if (!profile) return 'Ziel: nicht angegeben';
+  const parts: string[] = [];
+  if (profile.goalTitle) parts.push(profile.goalTitle);
+  if (profile.goalTargetWeight != null) parts.push(`Zielgewicht: ${profile.goalTargetWeight} kg`);
+  if (profile.goalNote) parts.push(profile.goalNote);
+  return parts.length > 0 ? `Ziel: ${parts.join(' · ')}` : 'Ziel: nicht angegeben';
+}
+
 function buildSystemPrompt(profile: Profile | null): string {
   const name = profile?.displayName || 'Athlet';
   const height = profile?.heightCm ? `${profile.heightCm} cm` : 'nicht angegeben';
@@ -80,6 +90,7 @@ NUTZERPROFIL:
 - Größe: ${height}
 - Gewicht: ${weight}
 - Notizen: ${notes}
+- ${goalBlock(profile)}
 
 KOMMUNIKATION:
 - Antworte IMMER in der Sprache, in der der Nutzer schreibt (Deutsch oder Englisch)
@@ -265,6 +276,7 @@ ${exerciseNames}
 NUTZERPROFIL:
 - Gewicht: ${weight}
 - Notizen: ${notes}
+- ${goalBlock(profile)}
 
 REGELN:
 - Antworte AUSSCHLIESSLICH mit validem JSON, kein anderer Text
@@ -346,6 +358,72 @@ export async function generatePlan(
         })
       : [],
   }));
+}
+
+// ── KI-Fortschrittsanalyse (Reporting) ─────────────────────────────────────────
+
+function buildAnalysisSystemPrompt(profile: Profile | null): string {
+  const name = profile?.displayName || 'Athlet';
+  const weight = profile?.weightKg ? `${profile.weightKg} kg` : 'nicht angegeben';
+
+  return `Du bist gAIn AI, ein datengetriebener Kraft- und Fitness-Analyst.
+Du bekommst die echten Trainingsdaten eines Nutzers und erstellst eine kurze, motivierende Auswertung.
+
+NUTZER:
+- Name: ${name}
+- Gewicht: ${weight}
+- ${goalBlock(profile)}
+
+DEINE AUFGABE:
+Analysiere die Daten und antworte mit GENAU diesen vier Abschnitten (jeweils mit Emoji-Überschrift):
+
+📊 Zusammenfassung
+(2-3 Sätze: Trainingshäufigkeit, Volumen-Trend, Gesamtbild)
+
+✅ Das läuft gut
+(2-3 konkrete Stichpunkte mit Zahlen aus den Daten)
+
+⚠️ Darauf solltest du achten
+(2-3 konkrete Stichpunkte: Schwachstellen, Ungleichgewichte, Plateaus, vernachlässigte Muskelgruppen)
+
+🎯 Nächste Schritte
+(2-3 konkrete, umsetzbare Empfehlungen – passend zum Ziel des Nutzers)
+
+REGELN:
+- Beziehe dich auf konkrete Zahlen und Übungsnamen aus den Daten
+- Bei Plateaus/Rückgängen bei einer Übung: benenne sie konkret
+- Verbinde die Empfehlungen mit dem Ziel des Nutzers
+- Schreibe auf Deutsch, motivierend aber ehrlich
+- Halte dich KURZ (max. 250 Wörter), nutze Stichpunkte
+- Keine erfundenen Daten – nur was in den Daten steht`;
+}
+
+/**
+ * Erstellt eine KI-Auswertung aus den aufbereiteten Trainingsdaten.
+ * `analyticsText` kommt aus analysis.formatAnalyticsForAi().
+ */
+export async function generateAnalysis(
+  provider: AiProvider,
+  apiKey: string,
+  modelId: string,
+  analyticsText: string,
+  profile: Profile | null
+): Promise<string> {
+  const systemPrompt = buildAnalysisSystemPrompt(profile);
+  const history: AiMessage[] = [
+    {
+      role: 'user',
+      content: `Hier sind meine Trainingsdaten. Bitte analysiere sie:\n\n${analyticsText}`,
+    },
+  ];
+  switch (provider) {
+    case 'gemini':
+      return sendGemini(apiKey, modelId, history, systemPrompt);
+    case 'groq':
+      return sendGroq(apiKey, modelId, history, systemPrompt);
+    case 'anthropic':
+      return sendAnthropic(apiKey, modelId, history, systemPrompt);
+  }
 }
 
 export const PLAN_SUGGESTIONS = [

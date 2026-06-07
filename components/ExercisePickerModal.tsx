@@ -17,7 +17,7 @@ import {
   EXERCISES,
   type Exercise,
   type MuscleCategory,
-} from '../lib/exercises';
+} from '../lib/application/exercises';
 
 const ALL_CATEGORIES: MuscleCategory[] = [
   'brust', 'ruecken', 'schultern', 'bizeps', 'trizeps', 'beine', 'core', 'cardio',

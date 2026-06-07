@@ -1,8 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type {
   ChatMessage,
-  Goal,
-  GoalKind,
   Profile,
   ProgressWeek,
   SessionExercise,
@@ -19,19 +17,10 @@ function mapProfile(r: Record<string, unknown>): Profile {
     heightCm: r.height_cm == null ? null : Number(r.height_cm),
     weightKg: r.weight_kg == null ? null : Number(r.weight_kg),
     notes: r.notes == null ? null : String(r.notes),
+    goalTitle: r.goal_title == null ? null : String(r.goal_title),
+    goalTargetWeight: r.goal_target_weight == null ? null : Number(r.goal_target_weight),
+    goalNote: r.goal_note == null ? null : String(r.goal_note),
     updatedAt: String(r.updated_at),
-  };
-}
-
-function mapGoal(r: Record<string, unknown>): Goal {
-  return {
-    id: Number(r.id),
-    kind: r.kind as GoalKind,
-    title: String(r.title),
-    targetValue: r.target_value == null ? null : Number(r.target_value),
-    unit: r.unit == null ? null : String(r.unit),
-    deadline: r.deadline == null ? null : String(r.deadline),
-    createdAt: String(r.created_at),
   };
 }
 
@@ -56,35 +45,17 @@ export async function saveProfile(
   );
 }
 
-export async function listGoals(db: SQLiteDatabase): Promise<Goal[]> {
-  const rows = await db.getAllAsync<Record<string, unknown>>(
-    'SELECT * FROM goals ORDER BY created_at DESC'
-  );
-  return rows.map(mapGoal);
-}
-
-export async function insertGoal(
+/** Speichert das (einzige) Fitnessziel direkt auf der Profil-Zeile. */
+export async function saveGoal(
   db: SQLiteDatabase,
-  g: {
-    kind: GoalKind;
-    title: string;
-    targetValue: number | null;
-    unit: string | null;
-    deadline: string | null;
-  }
+  g: { title: string | null; targetWeight: number | null; note: string | null }
 ) {
   await db.runAsync(
-    `INSERT INTO goals (kind, title, target_value, unit, deadline) VALUES (?, ?, ?, ?, ?)`,
-    g.kind,
+    `UPDATE profile SET goal_title = ?, goal_target_weight = ?, goal_note = ?, updated_at = datetime('now') WHERE id = 1`,
     g.title,
-    g.targetValue,
-    g.unit,
-    g.deadline
+    g.targetWeight,
+    g.note
   );
-}
-
-export async function deleteGoal(db: SQLiteDatabase, id: number) {
-  await db.runAsync('DELETE FROM goals WHERE id = ?', id);
 }
 
 export async function listTemplates(db: SQLiteDatabase): Promise<WorkoutTemplate[]> {
@@ -188,14 +159,6 @@ export async function getInProgressSession(db: SQLiteDatabase): Promise<SessionR
     startedAt: String(row.started_at),
     completedAt: row.completed_at == null ? null : String(row.completed_at),
   };
-}
-
-export async function createEmptySession(db: SQLiteDatabase, title: string | null): Promise<number> {
-  const res = await db.runAsync(
-    "INSERT INTO sessions (template_id, title, status) VALUES (NULL, ?, 'in_progress')",
-    title
-  );
-  return Number(res.lastInsertRowId);
 }
 
 export async function createSessionFromTemplate(
@@ -452,37 +415,136 @@ export async function clearChatMessages(db: SQLiteDatabase) {
   await db.runAsync('DELETE FROM chat_messages');
 }
 
-export function buildAnalysisText(input: {
+// ── Analytics / Reporting (Datenschicht) ───────────────────────────────────────
+
+export type TrainingSummary = {
   totalSessions: number;
-  lastWeekSessions: number;
-  prevWeekSessions: number;
-  lastWeekVolume: number;
-  prevWeekVolume: number;
-}): string {
-  const parts: string[] = [];
-  if (input.totalSessions === 0) {
-    return 'Noch keine abgeschlossenen Trainings. Leg los – die ersten Einträge erscheinen hier nach dem Speichern einer Einheit.';
-  }
-  parts.push(`Insgesamt ${input.totalSessions} abgeschlossene Trainingseinheiten.`);
+  totalVolumeKg: number;
+  totalSets: number;
+  firstDate: string | null;
+  lastDate: string | null;
+};
 
-  if (input.lastWeekSessions > input.prevWeekSessions) {
-    parts.push(
-      `Diese Woche häufiger trainiert als die Vorwoche (${input.lastWeekSessions} vs. ${input.prevWeekSessions}).`
-    );
-  } else if (input.lastWeekSessions < input.prevWeekSessions && input.prevWeekSessions > 0) {
-    parts.push(
-      `Letzte Woche warst du seltener im Gym als in der Woche davor (${input.lastWeekSessions} vs. ${input.prevWeekSessions}).`
-    );
-  }
+/** Gesamtkennzahlen über alle abgeschlossenen Einheiten. */
+export async function trainingSummary(db: SQLiteDatabase): Promise<TrainingSummary> {
+  const row = await db.getFirstAsync<{
+    total: number;
+    volume: number | null;
+    sets: number;
+    first_date: string | null;
+    last_date: string | null;
+  }>(
+    `SELECT
+       COUNT(DISTINCT s.id) as total,
+       COALESCE(SUM(COALESCE(st.weight_kg, 0) * COALESCE(st.reps, 0)), 0) as volume,
+       COUNT(st.id) as sets,
+       MIN(s.completed_at) as first_date,
+       MAX(s.completed_at) as last_date
+     FROM sessions s
+     LEFT JOIN session_exercises e ON e.session_id = s.id
+     LEFT JOIN sets st ON st.exercise_id = e.id
+     WHERE s.status = 'completed' AND s.completed_at IS NOT NULL`
+  );
+  return {
+    totalSessions: row ? Number(row.total) : 0,
+    totalVolumeKg: row && row.volume != null ? Number(row.volume) : 0,
+    totalSets: row ? Number(row.sets) : 0,
+    firstDate: row?.first_date ?? null,
+    lastDate: row?.last_date ?? null,
+  };
+}
 
-  if (input.lastWeekVolume > input.prevWeekVolume * 1.05 && input.prevWeekVolume > 0) {
-    parts.push('Das Trainingsvolumen (kg × Wdh.) ist gegenüber der Vorwoche gestiegen – solide Progression.');
-  } else if (input.lastWeekVolume < input.prevWeekVolume * 0.85 && input.prevWeekVolume > 0) {
-    parts.push('Das Volumen liegt unter dem der Vorwoche – prüfe Erholung, Intensität oder Zeit im Gym.');
-  }
+export type WeekdayCount = { weekday: number; count: number };
 
-  if (parts.length === 1) {
-    parts.push('Weiter so – mit mehr Daten werden die Trends klarer.');
+/** Verteilung der Trainings über die Wochentage (0 = Sonntag … 6 = Samstag). */
+export async function weekdayDistribution(db: SQLiteDatabase): Promise<WeekdayCount[]> {
+  const rows = await db.getAllAsync<{ wd: string; c: number }>(
+    `SELECT strftime('%w', completed_at) as wd, COUNT(*) as c
+     FROM sessions
+     WHERE status = 'completed' AND completed_at IS NOT NULL
+     GROUP BY wd`
+  );
+  return rows.map((r) => ({ weekday: Number(r.wd), count: Number(r.c) }));
+}
+
+export type ExerciseVolume = {
+  name: string;
+  volumeKg: number;
+  sets: number;
+  sessions: number;
+};
+
+/** Volumen / Satzanzahl je Übung (für Top-Übungen und Muskelgruppen-Verteilung). */
+export async function exerciseVolumeTotals(db: SQLiteDatabase): Promise<ExerciseVolume[]> {
+  const rows = await db.getAllAsync<{
+    name: string;
+    volume: number | null;
+    sets: number;
+    sessions: number;
+  }>(
+    `SELECT e.name as name,
+            COALESCE(SUM(COALESCE(st.weight_kg, 0) * COALESCE(st.reps, 0)), 0) as volume,
+            COUNT(st.id) as sets,
+            COUNT(DISTINCT e.session_id) as sessions
+     FROM session_exercises e
+     JOIN sessions s ON s.id = e.session_id AND s.status = 'completed'
+     LEFT JOIN sets st ON st.exercise_id = e.id
+     GROUP BY e.name COLLATE NOCASE
+     ORDER BY volume DESC`
+  );
+  return rows.map((r) => ({
+    name: r.name,
+    volumeKg: r.volume != null ? Number(r.volume) : 0,
+    sets: Number(r.sets),
+    sessions: Number(r.sessions),
+  }));
+}
+
+export type ExerciseProgressPoint = {
+  sessionId: number;
+  date: string;
+  maxWeight: number;
+  reps: number;
+  estOneRm: number;
+};
+
+/**
+ * Fortschritt einer einzelnen Übung über die Zeit: pro Einheit der schwerste Satz
+ * (inkl. geschätztem 1RM nach Epley). Zeigt z. B. „Bank Woche 1 vs. Woche 6".
+ */
+export async function exerciseProgress(
+  db: SQLiteDatabase,
+  exerciseName: string
+): Promise<ExerciseProgressPoint[]> {
+  const rows = await db.getAllAsync<{
+    sid: number;
+    date: string;
+    w: number | null;
+    r: number | null;
+  }>(
+    `SELECT s.id as sid, s.completed_at as date, st.weight_kg as w, st.reps as r
+     FROM sessions s
+     JOIN session_exercises e ON e.session_id = s.id
+     JOIN sets st ON st.exercise_id = e.id
+     WHERE s.status = 'completed' AND s.completed_at IS NOT NULL
+       AND e.name = ? AND st.weight_kg IS NOT NULL
+     ORDER BY s.completed_at ASC`,
+    exerciseName
+  );
+  const bySession = new Map<number, ExerciseProgressPoint>();
+  for (const row of rows) {
+    const w = row.w ?? 0;
+    const r = row.r ?? 0;
+    const existing = bySession.get(row.sid);
+    if (!existing || w > existing.maxWeight) {
+      bySession.set(row.sid, {
+        sessionId: row.sid,
+        date: row.date,
+        maxWeight: w,
+        reps: r,
+        estOneRm: Math.round(w * (1 + r / 30)), // Epley-Formel
+      });
+    }
   }
-  return parts.join(' ');
+  return Array.from(bySession.values()).sort((a, b) => a.date.localeCompare(b.date));
 }

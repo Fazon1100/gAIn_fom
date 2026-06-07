@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { xAlert } from '../../lib/alert';
+import { xAlert } from '../../lib/presentation/alert';
 import {
   CATEGORY_COLORS,
   CATEGORY_LABELS,
@@ -20,10 +20,10 @@ import {
   EXERCISES,
   type Exercise,
   type MuscleCategory,
-} from '../../lib/exercises';
+} from '../../lib/application/exercises';
 import { colors, spacing } from '../../constants/theme';
 import { useDb } from '../../context/DbProvider';
-import * as repo from '../../lib/repository';
+import * as repo from '../../lib/data/repository';
 
 const ALL_CATEGORIES: MuscleCategory[] = [
   'brust',
@@ -333,10 +333,12 @@ const styles = StyleSheet.create({
     height: 42,
     fontSize: 15,
   },
-  categoryScroll: { flexGrow: 0, marginBottom: 4 },
+  categoryScroll: { flexGrow: 0, marginBottom: spacing.sm },
   categoryContent: {
     paddingHorizontal: spacing.md,
+    paddingTop: 2,
     paddingBottom: spacing.sm,
+    alignItems: 'center',
   },
   chip: {
     paddingHorizontal: 14,

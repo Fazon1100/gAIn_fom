@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { migrate } from '../lib/db';
+import { migrate } from '../lib/data/db';
 
 type DbState = {
   db: SQLite.SQLiteDatabase | null;

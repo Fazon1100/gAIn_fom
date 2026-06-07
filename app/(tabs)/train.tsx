@@ -10,10 +10,10 @@ import {
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { PrimaryButton } from '../../components/PrimaryButton';
-import { xAlert } from '../../lib/alert';
+import { xAlert } from '../../lib/presentation/alert';
 import { colors, spacing } from '../../constants/theme';
 import { useDb } from '../../context/DbProvider';
-import * as repo from '../../lib/repository';
+import * as repo from '../../lib/data/repository';
 
 export default function TrainScreen() {
   const { db, refreshToken } = useDb();
@@ -48,20 +48,6 @@ export default function TrainScreen() {
     setRefreshing(false);
   };
 
-  const startEmpty = async () => {
-    if (!db) return;
-    const existing = await repo.getInProgressSession(db);
-    if (existing) {
-      xAlert(
-        'Aktives Training',
-        'Beende oder brich das laufende Training ab, bevor du ein neues startest.'
-      );
-      return;
-    }
-    const id = await repo.createEmptySession(db, 'Freies Training');
-    router.push(`/session/${id}`);
-  };
-
   const startFromTemplate = async (templateId: number, name: string) => {
     if (!db) return;
     const existing = await repo.getInProgressSession(db);
@@ -89,9 +75,9 @@ export default function TrainScreen() {
       }
     >
       <Text style={styles.brand}>gAIn</Text>
-      <Text style={styles.tagline}>Gym-Tracking – später mit KI-Unterstützung erweiterbar.</Text>
+      <Text style={styles.tagline}>Dein Training – geplant, getrackt und KI-gestützt analysiert.</Text>
 
-      {active ? (
+      {active && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Laufendes Training</Text>
           <Text style={styles.cardSub}>
@@ -99,21 +85,16 @@ export default function TrainScreen() {
           </Text>
           <PrimaryButton title="Fortsetzen" onPress={resume} style={styles.mt} />
         </View>
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Neu starten</Text>
-          <PrimaryButton title="Leeres Training (ad hoc)" onPress={startEmpty} />
-          <Text style={styles.hint}>
-            Übungen und Sätze fügst du während der Einheit hinzu; beim Speichern wird alles
-            protokolliert.
-          </Text>
-        </View>
       )}
 
-      <Text style={styles.section}>Aus Workout-Plan</Text>
+      <Text style={styles.section}>Training starten</Text>
+      <Text style={styles.lead}>
+        Wähle einen deiner Workout-Pläne, um eine Einheit zu starten.
+      </Text>
       {templates.length === 0 ? (
         <Text style={styles.muted}>
-          Noch keine Pläne. Lege unter „Pläne“ einen eigenen Trainingsplan an.
+          Noch keine Pläne. Lege unter „Pläne“ einen eigenen Trainingsplan an oder lass ihn von der KI
+          erstellen.
         </Text>
       ) : (
         templates.map((t) => (
@@ -175,6 +156,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   tagline: { color: colors.muted, marginTop: 8, marginBottom: spacing.lg, lineHeight: 20 },
+  lead: { color: colors.muted, marginBottom: spacing.md, lineHeight: 20, fontSize: 13 },
   card: {
     backgroundColor: colors.card,
     borderRadius: 16,

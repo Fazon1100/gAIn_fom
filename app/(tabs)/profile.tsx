@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { xAlert } from '../../lib/alert';
+import { xAlert } from '../../lib/presentation/alert';
 import { Field } from '../../components/Field';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { colors, spacing } from '../../constants/theme';
@@ -20,15 +20,8 @@ import {
   PROVIDER_LABELS,
   PROVIDER_MODELS,
   type AiProvider,
-} from '../../lib/ai';
-import type { GoalKind } from '../../lib/types';
-import * as repo from '../../lib/repository';
-
-const GOAL_KINDS: { id: GoalKind; label: string }[] = [
-  { id: 'lose_weight', label: 'Gewicht reduzieren' },
-  { id: 'gain_weight', label: 'Masse aufbauen' },
-  { id: 'other', label: 'Sonstiges' },
-];
+} from '../../lib/application/ai';
+import * as repo from '../../lib/data/repository';
 
 const ALL_PROVIDERS: AiProvider[] = ['gemini', 'groq', 'anthropic'];
 
@@ -47,13 +40,10 @@ export default function ProfileScreen() {
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
   const [modelId, setModelId] = useState<string>('gemini-2.0-flash');
 
-  // Goals
-  const [goals, setGoals] = useState<Awaited<ReturnType<typeof repo.listGoals>>>([]);
-  const [goalKind, setGoalKind] = useState<GoalKind>('lose_weight');
+  // Einzelnes Ziel
   const [goalTitle, setGoalTitle] = useState('');
   const [goalTarget, setGoalTarget] = useState('');
-  const [goalUnit, setGoalUnit] = useState('kg');
-  const [goalDeadline, setGoalDeadline] = useState('');
+  const [goalNote, setGoalNote] = useState('');
 
   const loadKeyForProvider = useCallback(async (p: AiProvider) => {
     if (!db) return '';
@@ -63,20 +53,21 @@ export default function ProfileScreen() {
 
   const load = useCallback(async () => {
     if (!db) return;
-    const [p, savedProvider, savedModel, g] = await Promise.all([
+    const [p, savedProvider, savedModel] = await Promise.all([
       repo.getProfile(db),
       repo.getSetting(db, 'ai_provider'),
       repo.getSetting(db, 'ai_model'),
-      repo.listGoals(db),
     ]);
     setDisplayName(p.displayName);
     setHeightCm(p.heightCm != null ? String(p.heightCm) : '');
     setWeightKg(p.weightKg != null ? String(p.weightKg) : '');
     setNotes(p.notes ?? '');
+    setGoalTitle(p.goalTitle ?? '');
+    setGoalTarget(p.goalTargetWeight != null ? String(p.goalTargetWeight) : '');
+    setGoalNote(p.goalNote ?? '');
     const prov = (savedProvider as AiProvider) || 'gemini';
     setProvider(prov);
     if (savedModel) setModelId(savedModel);
-    setGoals(g);
     setApiKey(await loadKeyForProvider(prov));
   }, [db, loadKeyForProvider]);
 
@@ -132,44 +123,19 @@ export default function ProfileScreen() {
     xAlert('Gespeichert', `${PROVIDER_LABELS[provider]} ist jetzt aktiv. Du kannst den KI Coach nutzen!`);
   };
 
-  const addGoal = async () => {
+  const saveGoal = async () => {
     if (!db) return;
-    const t = goalTitle.trim();
-    if (!t) {
-      xAlert('Hinweis', 'Bitte einen Titel für das Ziel eingeben.');
-      return;
-    }
     const tv = goalTarget.trim() === '' ? null : Number(goalTarget.replace(',', '.'));
     if (tv != null && Number.isNaN(tv)) {
-      xAlert('Hinweis', 'Zielwert bitte als Zahl.');
+      xAlert('Hinweis', 'Zielgewicht bitte als Zahl (kg).');
       return;
     }
-    await repo.insertGoal(db, {
-      kind: goalKind,
-      title: t,
-      targetValue: tv,
-      unit: goalUnit.trim() === '' ? null : goalUnit.trim(),
-      deadline: goalDeadline.trim() === '' ? null : goalDeadline.trim(),
+    await repo.saveGoal(db, {
+      title: goalTitle.trim() === '' ? null : goalTitle.trim(),
+      targetWeight: tv,
+      note: goalNote.trim() === '' ? null : goalNote.trim(),
     });
-    setGoalTitle('');
-    setGoalTarget('');
-    setGoalDeadline('');
-    setGoals(await repo.listGoals(db));
-  };
-
-  const removeGoal = (id: number) => {
-    xAlert('Ziel löschen?', undefined, [
-      { text: 'Abbrechen', style: 'cancel' },
-      {
-        text: 'Löschen',
-        style: 'destructive',
-        onPress: async () => {
-          if (!db) return;
-          await repo.deleteGoal(db, id);
-          setGoals(await repo.listGoals(db));
-        },
-      },
-    ]);
+    xAlert('Gespeichert', 'Dein Ziel wurde aktualisiert. Die KI berücksichtigt es ab jetzt.');
   };
 
   const currentModels = PROVIDER_MODELS[provider];
@@ -284,80 +250,36 @@ export default function ProfileScreen() {
         <PrimaryButton title="KI-Einstellungen speichern" onPress={saveAiSettings} />
       </View>
 
-      {/* ── Ziele ──────────────────────────────────── */}
-      <SectionHeader icon="bullseye" title="Meine Ziele" />
+      {/* ── Mein Ziel ──────────────────────────────── */}
+      <SectionHeader icon="bullseye" title="Mein Ziel" />
       <View style={styles.card}>
-        <Text style={styles.helpText}>Neues Fitnessziel anlegen</Text>
-        <Text style={styles.fieldLabel}>Art des Ziels</Text>
-        <View style={styles.kindRow}>
-          {GOAL_KINDS.map((k) => (
-            <Pressable
-              key={k.id}
-              onPress={() => setGoalKind(k.id)}
-              style={[styles.chip, goalKind === k.id && styles.chipOn]}
-            >
-              <Text style={[styles.chipText, goalKind === k.id && styles.chipTextOn]}>
-                {k.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.helpText}>
+          Du verfolgst ein klares Hauptziel. Die KI liest es ein und richtet Pläne, Coaching und
+          Analyse danach aus.
+        </Text>
         <Field
           label="Titel"
           value={goalTitle}
           onChangeText={setGoalTitle}
-          placeholder="z. B. 80 kg bis Sommer"
+          placeholder="z. B. 80 kg erreichen / 5 kg Muskeln aufbauen"
         />
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Field
-              label="Zielwert"
-              value={goalTarget}
-              onChangeText={setGoalTarget}
-              keyboardType="decimal-pad"
-              placeholder="optional"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Field
-              label="Einheit"
-              value={goalUnit}
-              onChangeText={setGoalUnit}
-              placeholder="kg, %, km …"
-            />
-          </View>
-        </View>
         <Field
-          label="Deadline / Notiz"
-          value={goalDeadline}
-          onChangeText={setGoalDeadline}
-          placeholder="z. B. 2026-12-31 oder freier Text"
+          label="Zielgewicht (kg)"
+          value={goalTarget}
+          onChangeText={setGoalTarget}
+          keyboardType="decimal-pad"
+          placeholder="optional, z. B. 80"
         />
-        <PrimaryButton title="Ziel hinzufügen" onPress={addGoal} variant="secondary" />
+        <Field
+          label="Beschreibung für die KI"
+          value={goalNote}
+          onChangeText={setGoalNote}
+          multiline
+          placeholder="Beschreibe dein Ziel frei: Zeitrahmen, Motivation, Schwerpunkte, Einschränkungen …"
+          style={{ minHeight: 90, textAlignVertical: 'top' }}
+        />
+        <PrimaryButton title="Ziel speichern" onPress={saveGoal} />
       </View>
-
-      {goals.length > 0 && (
-        <View style={styles.goalsList}>
-          {goals.map((g) => (
-            <View key={g.id} style={styles.goalCard}>
-              <View style={styles.goalCardInner}>
-                <View style={[styles.goalAccent, { backgroundColor: goalColor(g.kind) }]} />
-                <View style={styles.goalBody}>
-                  <Text style={styles.goalTitle}>{g.title}</Text>
-                  <Text style={styles.goalSub}>
-                    {labelKind(g.kind)}
-                    {g.targetValue != null && ` · Ziel: ${g.targetValue}${g.unit ? ` ${g.unit}` : ''}`}
-                    {g.deadline ? `  ·  ${g.deadline}` : ''}
-                  </Text>
-                </View>
-                <Pressable onPress={() => removeGoal(g.id)} hitSlop={8} style={styles.deleteBtn}>
-                  <FontAwesome name="trash" size={14} color={colors.danger} />
-                </Pressable>
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
@@ -381,16 +303,6 @@ function SectionHeader({
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
-}
-
-function goalColor(kind: GoalKind): string {
-  if (kind === 'lose_weight') return '#45B7D1';
-  if (kind === 'gain_weight') return '#7ee787';
-  return '#FBBF24';
-}
-
-function labelKind(k: GoalKind): string {
-  return GOAL_KINDS.find((x) => x.id === k)?.label ?? k;
 }
 
 const styles = StyleSheet.create({

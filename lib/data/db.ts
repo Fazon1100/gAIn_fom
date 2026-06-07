@@ -10,17 +10,10 @@ CREATE TABLE IF NOT EXISTS profile (
   height_cm REAL,
   weight_kg REAL,
   notes TEXT,
+  goal_title TEXT,
+  goal_target_weight REAL,
+  goal_note TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS goals (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  kind TEXT NOT NULL,
-  title TEXT NOT NULL,
-  target_value REAL,
-  unit TEXT,
-  deadline TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS workout_templates (
@@ -101,5 +94,20 @@ export async function migrate(db: SQLiteDatabase) {
   }
   if (!colNames.includes('reps')) {
     await db.execAsync("ALTER TABLE template_exercises ADD COLUMN reps TEXT");
+  }
+
+  // v3: single goal lives on the profile row (replaces the old multi-goal table)
+  const profileCols = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(profile)"
+  );
+  const profileColNames = profileCols.map((c) => c.name);
+  if (!profileColNames.includes('goal_title')) {
+    await db.execAsync('ALTER TABLE profile ADD COLUMN goal_title TEXT');
+  }
+  if (!profileColNames.includes('goal_target_weight')) {
+    await db.execAsync('ALTER TABLE profile ADD COLUMN goal_target_weight REAL');
+  }
+  if (!profileColNames.includes('goal_note')) {
+    await db.execAsync('ALTER TABLE profile ADD COLUMN goal_note TEXT');
   }
 }

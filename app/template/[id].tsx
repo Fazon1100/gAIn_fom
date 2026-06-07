@@ -10,13 +10,13 @@ import {
   View,
 } from 'react-native';
 import { Field } from '../../components/Field';
-import { xAlert } from '../../lib/alert';
+import { xAlert } from '../../lib/presentation/alert';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { ExercisePickerModal } from '../../components/ExercisePickerModal';
 import { colors, spacing } from '../../constants/theme';
 import { useDb } from '../../context/DbProvider';
-import { CATEGORY_COLORS, getExerciseByName, type Exercise } from '../../lib/exercises';
-import * as repo from '../../lib/repository';
+import { CATEGORY_COLORS, getExerciseByName, type Exercise } from '../../lib/application/exercises';
+import * as repo from '../../lib/data/repository';
 
 export default function TemplateEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

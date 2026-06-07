@@ -8,7 +8,7 @@ import {
   getAlternatives,
   getExerciseById,
   type Exercise,
-} from '../../lib/exercises';
+} from '../../lib/application/exercises';
 import { colors, spacing } from '../../constants/theme';
 
 const EQUIPMENT_LABELS: Record<string, string> = {

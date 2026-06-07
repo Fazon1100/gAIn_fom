@@ -1,22 +1,14 @@
-export type GoalKind = 'lose_weight' | 'gain_weight' | 'other';
-
 export type Profile = {
   id: number;
   displayName: string;
   heightCm: number | null;
   weightKg: number | null;
   notes: string | null;
+  // Einzelnes Fitnessziel (es gibt bewusst nur EINS – siehe Profil-Screen)
+  goalTitle: string | null;
+  goalTargetWeight: number | null;
+  goalNote: string | null;
   updatedAt: string;
-};
-
-export type Goal = {
-  id: number;
-  kind: GoalKind;
-  title: string;
-  targetValue: number | null;
-  unit: string | null;
-  deadline: string | null;
-  createdAt: string;
 };
 
 export type WorkoutTemplate = {
