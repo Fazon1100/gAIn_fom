@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../constants/theme';
@@ -18,10 +18,12 @@ import { useDb } from '../context/DbProvider';
 import * as repo from '../lib/data/repository';
 
 const STEPS = ['Willkommen', 'Profil', 'Dein Ziel', 'KI-Coach'];
+const LAST = STEPS.length - 1;
 
 export default function Onboarding() {
   const router = useRouter();
   const { db, refresh } = useDb();
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
 
   const [name, setName] = useState('');
@@ -31,11 +33,14 @@ export default function Onboarding() {
   const [goalTarget, setGoalTarget] = useState('');
   const [goalNote, setGoalNote] = useState('');
 
-  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const next = () => setStep((s) => Math.min(s + 1, LAST));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   const finish = async () => {
-    if (!db) return;
+    if (!db) {
+      router.replace('/(tabs)/train');
+      return;
+    }
     const h = height.trim() === '' ? null : Number(height.replace(',', '.'));
     const w = weight.trim() === '' ? null : Number(weight.replace(',', '.'));
     const gt = goalTarget.trim() === '' ? null : Number(goalTarget.replace(',', '.'));
@@ -57,9 +62,18 @@ export default function Onboarding() {
     router.replace('/(tabs)/train');
   };
 
+  const onPrimary = () => {
+    if (step < LAST) next();
+    else finish();
+  };
+  const primaryTitle = step === 0 ? "Los geht's" : step < LAST ? 'Weiter' : 'Fertig & starten';
+
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={[styles.screen, { paddingTop: insets.top + spacing.md }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         {/* Fortschrittsanzeige */}
         <View style={styles.progress}>
           {STEPS.map((_, i) => (
@@ -68,86 +82,80 @@ export default function Onboarding() {
         </View>
 
         <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
+          style={styles.flex}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {step === 0 && (
-            <View style={styles.welcome}>
-              <Text style={styles.brand}>gAIn</Text>
-              <Text style={styles.welcomeSub}>
-                Dein smarter Trainingsbegleiter – plane Workouts, tracke jeden Satz und erhalte eine
-                KI-gestützte Auswertung deines Fortschritts.
-              </Text>
-              <View style={styles.features}>
-                <Feature icon="list-alt" text="Trainingspläne – selbst oder von der KI erstellt" />
-                <Feature icon="bolt" text="Einheiten live tracken (Sätze, Wdh., Gewicht)" />
-                <Feature icon="line-chart" text="Statistiken, Diagramme & KI-Analyse" />
-                <Feature icon="magic" text="KI-Coach – funktioniert auch offline" />
-              </View>
-            </View>
-          )}
-
-          {step === 1 && (
-            <View>
-              <StepHeader title="Erzähl uns von dir" sub="Optional – hilft der KI, dich besser zu beraten." />
-              <Field label="Name" value={name} onChangeText={setName} placeholder="z. B. Max" />
-              <Field label="Größe (cm)" value={height} onChangeText={setHeight} keyboardType="decimal-pad" placeholder="z. B. 180" />
-              <Field label="Gewicht (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="z. B. 80" />
-            </View>
-          )}
-
-          {step === 2 && (
-            <View>
-              <StepHeader title="Was ist dein Ziel?" sub="Du verfolgst ein Hauptziel. Die KI richtet alles danach aus." />
-              <Field label="Titel" value={goalTitle} onChangeText={setGoalTitle} placeholder="z. B. 85 kg & stärker werden" />
-              <Field label="Zielgewicht (kg)" value={goalTarget} onChangeText={setGoalTarget} keyboardType="decimal-pad" placeholder="optional" />
-              <Field
-                label="Beschreibung für die KI"
-                value={goalNote}
-                onChangeText={setGoalNote}
-                multiline
-                placeholder="Zeitrahmen, Motivation, Schwerpunkte …"
-                style={{ minHeight: 80, textAlignVertical: 'top' }}
-              />
-            </View>
-          )}
-
-          {step === 3 && (
-            <View>
-              <StepHeader title="Dein KI-Coach ist startklar" sub="Standardmäßig läuft der Offline-Coach – ohne Schlüssel, ohne Internet." />
-              <View style={styles.aiCard}>
-                <FontAwesome name="check-circle" size={20} color={colors.accent} />
-                <Text style={styles.aiCardText}>
-                  Der <Text style={styles.bold}>Offline-Coach</Text> ist aktiv und beantwortet Fragen zu
-                  Training & Ernährung sofort. Für noch ausführlichere Antworten kannst du später im
-                  Profil einen kostenlosen KI-Anbieter (Google Gemini oder Groq) hinterlegen.
+          <View style={styles.stepWrap}>
+            {step === 0 && (
+              <View style={styles.welcome}>
+                <Text style={styles.brand}>gAIn</Text>
+                <Text style={styles.welcomeSub}>
+                  Dein smarter Trainingsbegleiter – plane Workouts, tracke jeden Satz und erhalte eine
+                  KI-gestützte Auswertung deines Fortschritts.
                 </Text>
+                <View style={styles.features}>
+                  <Feature icon="list-alt" text="Trainingspläne – selbst oder von der KI erstellt" />
+                  <Feature icon="bolt" text="Einheiten live tracken (Sätze, Wdh., Gewicht)" />
+                  <Feature icon="line-chart" text="Statistiken, Diagramme & KI-Analyse" />
+                  <Feature icon="magic" text="KI-Coach – funktioniert auch offline" />
+                </View>
               </View>
-            </View>
-          )}
-        </ScrollView>
+            )}
 
-        <View style={styles.footer}>
-          {step > 0 ? (
-            <Pressable style={styles.backBtn} onPress={back}>
-              <Text style={styles.backText}>Zurück</Text>
-            </Pressable>
-          ) : (
-            <View style={styles.backBtn} />
-          )}
-          {step < STEPS.length - 1 ? (
-            <View style={styles.nextBtn}>
-              <PrimaryButton title={step === 0 ? "Los geht's" : 'Weiter'} onPress={next} />
-            </View>
-          ) : (
-            <View style={styles.nextBtn}>
-              <PrimaryButton title="Fertig & starten" onPress={finish} />
-            </View>
-          )}
-        </View>
+            {step === 1 && (
+              <View>
+                <StepHeader title="Erzähl uns von dir" sub="Optional – hilft der KI, dich besser zu beraten." />
+                <Field label="Name" value={name} onChangeText={setName} placeholder="z. B. Max" />
+                <Field label="Größe (cm)" value={height} onChangeText={setHeight} keyboardType="decimal-pad" placeholder="z. B. 180" />
+                <Field label="Gewicht (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="z. B. 80" />
+              </View>
+            )}
+
+            {step === 2 && (
+              <View>
+                <StepHeader title="Was ist dein Ziel?" sub="Du verfolgst ein Hauptziel. Die KI richtet alles danach aus." />
+                <Field label="Titel" value={goalTitle} onChangeText={setGoalTitle} placeholder="z. B. 85 kg & stärker werden" />
+                <Field label="Zielgewicht (kg)" value={goalTarget} onChangeText={setGoalTarget} keyboardType="decimal-pad" placeholder="optional" />
+                <Field
+                  label="Beschreibung für die KI"
+                  value={goalNote}
+                  onChangeText={setGoalNote}
+                  multiline
+                  placeholder="Zeitrahmen, Motivation, Schwerpunkte …"
+                  style={{ minHeight: 80, textAlignVertical: 'top' }}
+                />
+              </View>
+            )}
+
+            {step === 3 && (
+              <View>
+                <StepHeader title="Dein KI-Coach ist startklar" sub="Standardmäßig läuft der Offline-Coach – ohne Schlüssel, ohne Internet." />
+                <View style={styles.aiCard}>
+                  <FontAwesome name="check-circle" size={20} color={colors.accent} />
+                  <Text style={styles.aiCardText}>
+                    Der <Text style={styles.bold}>Offline-Coach</Text> ist aktiv und beantwortet Fragen zu
+                    Training & Ernährung sofort. Für noch ausführlichere Antworten kannst du später im
+                    Profil einen kostenlosen KI-Anbieter (Google Gemini oder Groq) hinterlegen.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Aktionen – im Scroll-Inhalt, garantiert tappbar */}
+          <View style={styles.actions}>
+            <PrimaryButton title={primaryTitle} onPress={onPrimary} />
+            {step > 0 && (
+              <Pressable onPress={back} style={styles.backLink} hitSlop={8}>
+                <Text style={styles.backText}>Zurück</Text>
+              </Pressable>
+            )}
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -173,11 +181,12 @@ function StepHeader({ title, sub }: { title: string; sub: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  progress: { flexDirection: 'row', gap: 6, justifyContent: 'center', paddingTop: spacing.md, paddingBottom: spacing.sm },
+  flex: { flex: 1 },
+  progress: { flexDirection: 'row', gap: 6, justifyContent: 'center', paddingBottom: spacing.sm },
   dot: { width: 28, height: 4, borderRadius: 2, backgroundColor: colors.border },
   dotActive: { backgroundColor: colors.accent },
-  scroll: { flex: 1 },
-  content: { padding: spacing.lg, flexGrow: 1, justifyContent: 'center' },
+  content: { padding: spacing.lg, flexGrow: 1 },
+  stepWrap: { flex: 1, justifyContent: 'center', minHeight: 320 },
 
   welcome: { alignItems: 'center' },
   brand: { fontSize: 52, fontWeight: '800', color: colors.accent, letterSpacing: 1, marginBottom: spacing.md },
@@ -213,8 +222,7 @@ const styles = StyleSheet.create({
   aiCardText: { color: colors.text, fontSize: 14, lineHeight: 21, flex: 1 },
   bold: { fontWeight: '700', color: colors.accent },
 
-  footer: { flexDirection: 'row', alignItems: 'center', padding: spacing.lg, gap: 12 },
-  backBtn: { paddingVertical: 12, paddingHorizontal: 8, minWidth: 72 },
+  actions: { marginTop: spacing.xl, gap: 4 },
+  backLink: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 24 },
   backText: { color: colors.muted, fontSize: 15, fontWeight: '600' },
-  nextBtn: { flex: 1 },
 });
