@@ -218,6 +218,10 @@ export async function listSessionExercises(
   }));
 }
 
+export async function deleteSessionExercise(db: SQLiteDatabase, exerciseId: number) {
+  await db.runAsync('DELETE FROM session_exercises WHERE id = ?', exerciseId);
+}
+
 export async function listSets(db: SQLiteDatabase, exerciseId: number): Promise<SetRow[]> {
   const rows = await db.getAllAsync<Record<string, unknown>>(
     'SELECT * FROM sets WHERE exercise_id = ? ORDER BY set_index ASC',
@@ -580,6 +584,43 @@ export async function exerciseVolumeTotals(db: SQLiteDatabase): Promise<Exercise
     sets: Number(r.sets),
     sessions: Number(r.sessions),
   }));
+}
+
+export type LastPerformance = { date: string; weightKg: number; reps: number };
+
+/** Bester Satz der zuletzt abgeschlossenen Einheit mit dieser Übung (für „Letztes Mal"). */
+export async function lastExercisePerformance(
+  db: SQLiteDatabase,
+  exerciseName: string
+): Promise<LastPerformance | null> {
+  const row = await db.getFirstAsync<{ date: string; w: number; r: number | null }>(
+    `SELECT s.completed_at as date, st.weight_kg as w, st.reps as r
+     FROM sessions s
+     JOIN session_exercises e ON e.session_id = s.id
+     JOIN sets st ON st.exercise_id = e.id
+     WHERE s.status = 'completed' AND e.name = ? AND st.weight_kg IS NOT NULL
+     ORDER BY s.completed_at DESC, st.weight_kg DESC
+     LIMIT 1`,
+    exerciseName
+  );
+  if (!row) return null;
+  return { date: row.date, weightKg: Number(row.w), reps: row.r == null ? 0 : Number(row.r) };
+}
+
+/** Höchstes je in einer abgeschlossenen Einheit bewegtes Gewicht (für PR-Erkennung). */
+export async function exerciseMaxWeight(
+  db: SQLiteDatabase,
+  exerciseName: string
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ m: number | null }>(
+    `SELECT MAX(st.weight_kg) as m
+     FROM sessions s
+     JOIN session_exercises e ON e.session_id = s.id
+     JOIN sets st ON st.exercise_id = e.id
+     WHERE s.status = 'completed' AND e.name = ?`,
+    exerciseName
+  );
+  return row && row.m != null ? Number(row.m) : null;
 }
 
 export type ExerciseProgressPoint = {
