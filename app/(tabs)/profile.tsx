@@ -1,8 +1,10 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Constants from 'expo-constants';
 import { useCallback, useState } from 'react';
 import {
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -22,12 +24,13 @@ import {
   providerNeedsKey,
   type AiProvider,
 } from '../../lib/application/ai';
+import { loadDemoData } from '../../lib/application/demoData';
 import * as repo from '../../lib/data/repository';
 
 const ALL_PROVIDERS: AiProvider[] = ['offline', 'gemini', 'groq', 'anthropic'];
 
 export default function ProfileScreen() {
-  const { db, refreshToken } = useDb();
+  const { db, refreshToken, refresh } = useDb();
 
   // Profile
   const [displayName, setDisplayName] = useState('');
@@ -140,7 +143,59 @@ export default function ProfileScreen() {
     xAlert('Gespeichert', 'Dein Ziel wurde aktualisiert. Die KI berücksichtigt es ab jetzt.');
   };
 
+  const handleLoadDemo = () => {
+    xAlert(
+      'Demo-Daten laden?',
+      'Ersetzt alle aktuellen Daten durch ein Beispielprofil mit ~8 Wochen Trainingshistorie. Ideal für eine Live-Demo.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Laden',
+          onPress: async () => {
+            if (!db) return;
+            await loadDemoData(db);
+            refresh();
+            load();
+            xAlert('Fertig', 'Demo-Daten geladen. Schau dir den Fortschritt-Tab an!');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReset = () => {
+    xAlert(
+      'Alle Daten zurücksetzen?',
+      'Profil, Pläne, Einheiten, Chat und Einstellungen werden unwiderruflich gelöscht.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Löschen',
+          style: 'destructive',
+          onPress: async () => {
+            if (!db) return;
+            await repo.resetAllData(db);
+            refresh();
+            load();
+            xAlert('Erledigt', 'Alle Daten wurden zurückgesetzt.');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleExport = async () => {
+    if (!db) return;
+    try {
+      const json = await repo.exportAllData(db);
+      await Share.share({ message: json });
+    } catch (e) {
+      xAlert('Fehler', e instanceof Error ? e.message : 'Export fehlgeschlagen.');
+    }
+  };
+
   const currentModels = PROVIDER_MODELS[provider];
+  const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -295,10 +350,39 @@ export default function ProfileScreen() {
         <PrimaryButton title="Ziel speichern" onPress={saveGoal} />
       </View>
 
+      {/* ── Daten & App ────────────────────────────── */}
+      <SectionHeader icon="database" title="Daten & App" />
+      <View style={styles.card}>
+        <Pressable style={styles.dataRow} onPress={handleLoadDemo}>
+          <FontAwesome name="magic" size={16} color={colors.accent} style={styles.dataIcon} />
+          <View style={styles.dataBody}>
+            <Text style={styles.dataTitle}>Demo-Daten laden</Text>
+            <Text style={styles.dataSub}>Beispielprofil + 8 Wochen Historie für die Präsentation</Text>
+          </View>
+          <FontAwesome name="chevron-right" size={13} color={colors.muted} />
+        </Pressable>
+        <Pressable style={styles.dataRow} onPress={handleExport}>
+          <FontAwesome name="share-square-o" size={16} color={colors.accent} style={styles.dataIcon} />
+          <View style={styles.dataBody}>
+            <Text style={styles.dataTitle}>Backup exportieren</Text>
+            <Text style={styles.dataSub}>Alle Daten als JSON teilen / sichern</Text>
+          </View>
+          <FontAwesome name="chevron-right" size={13} color={colors.muted} />
+        </Pressable>
+        <Pressable style={[styles.dataRow, styles.dataRowLast]} onPress={handleReset}>
+          <FontAwesome name="trash" size={16} color={colors.danger} style={styles.dataIcon} />
+          <View style={styles.dataBody}>
+            <Text style={[styles.dataTitle, { color: colors.danger }]}>Alle Daten zurücksetzen</Text>
+            <Text style={styles.dataSub}>Profil, Pläne und Historie löschen</Text>
+          </View>
+        </Pressable>
+      </View>
+
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           gAIn speichert alle Daten lokal auf deinem Gerät. Kein Account, kein Cloud-Sync.
         </Text>
+        <Text style={styles.versionText}>Version {appVersion}</Text>
       </View>
     </ScrollView>
   );
@@ -459,6 +543,21 @@ const styles = StyleSheet.create({
   goalSub: { color: colors.muted, marginTop: 4, fontSize: 13, lineHeight: 18 },
   deleteBtn: { padding: spacing.md },
 
+  // Daten & App
+  dataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  dataRowLast: { borderBottomWidth: 0 },
+  dataIcon: { width: 26 },
+  dataBody: { flex: 1 },
+  dataTitle: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  dataSub: { color: colors.muted, fontSize: 12, marginTop: 2 },
+
   footer: { marginTop: spacing.lg },
   footerText: { color: colors.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  versionText: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 6, opacity: 0.7 },
 });

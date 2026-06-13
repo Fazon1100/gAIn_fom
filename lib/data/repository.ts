@@ -315,6 +315,88 @@ export async function listCompletedSessions(
   }));
 }
 
+/**
+ * Fügt eine bereits abgeschlossene Einheit mit explizitem Datum ein
+ * (für Demo-Daten / Backups). Schreibt Übungen und Sätze direkt mit.
+ */
+export async function insertCompletedSession(
+  db: SQLiteDatabase,
+  opts: {
+    title: string;
+    templateId: number | null;
+    startedAt: string;
+    completedAt: string;
+    exercises: { name: string; sets: { reps: number | null; weightKg: number | null }[] }[];
+  }
+): Promise<number> {
+  const res = await db.runAsync(
+    "INSERT INTO sessions (template_id, title, status, started_at, completed_at) VALUES (?, ?, 'completed', ?, ?)",
+    opts.templateId,
+    opts.title,
+    opts.startedAt,
+    opts.completedAt
+  );
+  const sessionId = Number(res.lastInsertRowId);
+  for (let i = 0; i < opts.exercises.length; i++) {
+    const ex = opts.exercises[i];
+    const exRes = await db.runAsync(
+      'INSERT INTO session_exercises (session_id, name, sort_order) VALUES (?, ?, ?)',
+      sessionId,
+      ex.name,
+      i
+    );
+    const exId = Number(exRes.lastInsertRowId);
+    for (let s = 0; s < ex.sets.length; s++) {
+      await db.runAsync(
+        'INSERT INTO sets (exercise_id, set_index, reps, weight_kg) VALUES (?, ?, ?, ?)',
+        exId,
+        s,
+        ex.sets[s].reps,
+        ex.sets[s].weightKg
+      );
+    }
+  }
+  return sessionId;
+}
+
+/** Löscht alle Nutzerdaten (Pläne, Einheiten, Chat, Einstellungen) und setzt das Profil zurück. */
+export async function resetAllData(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    DELETE FROM sessions;
+    DELETE FROM workout_templates;
+    DELETE FROM chat_messages;
+    DELETE FROM app_settings;
+    UPDATE profile SET display_name = 'Athlet', height_cm = NULL, weight_kg = NULL,
+      notes = NULL, goal_title = NULL, goal_target_weight = NULL, goal_note = NULL,
+      updated_at = datetime('now') WHERE id = 1;
+  `);
+}
+
+/** Exportiert alle Trainingsdaten als JSON-String (lokales Backup). */
+export async function exportAllData(db: SQLiteDatabase): Promise<string> {
+  const profile = await getProfile(db);
+  const templates = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM workout_templates');
+  const templateExercises = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM template_exercises');
+  const sessions = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM sessions');
+  const sessionExercises = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM session_exercises');
+  const sets = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM sets');
+  return JSON.stringify(
+    {
+      app: 'gAIn',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      profile,
+      templates,
+      templateExercises,
+      sessions,
+      sessionExercises,
+      sets,
+    },
+    null,
+    2
+  );
+}
+
 /** Summe (Gewicht × Wiederholungen) pro abgeschlossener Session */
 export async function sessionVolumeKg(
   db: SQLiteDatabase,
