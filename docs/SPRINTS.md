@@ -43,14 +43,16 @@ Sprintlänge: 2 Wochen. Die Zuordnung der User Stories bezieht sich auf das
 
 ## Sprint 4 – Abnahmereife (Definition of Done)
 
-**Sprint-Ziel:** Demo-sicher, offline-fähig, getestet – bereit zur Abnahme.
+**Sprint-Ziel:** Demo-sicher, sofort startklar, getestet – bereit zur Abnahme.
 
-- US-12 (Offline-KI), US-03, US-04, US-05 (Session-UX)
-- US-18 (Onboarding), US-19 (Export/Reset)
-- US-22 (Tests & CI), App-Konfiguration (`app.json`)
+- Session-UX (Rekorde, Pausentimer, „Letztes Mal")
+- Onboarding, Export/Reset
+- Tests & CI, App-Konfiguration (`app.json`)
+- Groq als Standard-KI mit hardcodiertem Key (sofort nutzbar)
+- iOS-Kompatibilität (Expo Go) sichergestellt
 
-**Review:** Vollständige Offline-Nutzung, Live-Demo mit Demo-Daten, grüne CI.
-**Retro:** Offline-Modus erhöht die Demo-Sicherheit deutlich.
+**Review:** KI ohne Setup nutzbar, Live-Demo auf dem iPhone, grüne CI.
+**Retro:** Versions-/Native-Setup (Expo Go) früh prüfen spart viel Debugging.
 
 ---
 

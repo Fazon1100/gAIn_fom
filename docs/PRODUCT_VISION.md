@@ -5,8 +5,8 @@
 > **Für** ambitionierte Hobby- und Freizeitsportler:innen, **die** ihr Krafttraining
 > strukturiert verbessern wollen, **ist** gAIn **eine** mobile Trainings-App, **die**
 > Workouts plant, jeden Satz protokolliert und mithilfe von KI verständliche
-> Fortschrittsanalysen liefert. **Anders als** klassische Tracking-Apps **funktioniert**
-> gAIn vollständig offline und ohne Account – die Daten bleiben auf dem Gerät.
+> Fortschrittsanalysen liefert. **Anders als** klassische Tracking-Apps **ist**
+> gAIn ohne Account nutzbar und sofort startklar (KI vorkonfiguriert) – die Trainingsdaten bleiben lokal auf dem Gerät.
 
 ## Problem
 
@@ -29,7 +29,7 @@ Eine fokussierte App, die drei Dinge sehr gut macht:
 
 ## Alleinstellungsmerkmale (USP)
 
-- **Offline-KI-Coach**: Beratung & Analyse auch ohne Internet/API-Schlüssel
+- **Sofort startklare KI**: Groq ist vorkonfiguriert – kein Setup, kein eigener API-Schlüssel nötig
 - **Datensouveränität**: 100 % lokale Speicherung, Export als Backup
 - **Klares Zielsystem**: genau ein Hauptziel steuert Coaching, Pläne & Analyse
 
