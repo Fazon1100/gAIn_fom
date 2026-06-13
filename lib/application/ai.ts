@@ -1,29 +1,41 @@
 import { EXERCISES } from './exercises';
+import type { AnalyticsData } from './analysis';
+import { formatAnalyticsForAi } from './analysis';
+import { offlineAnalysis, offlineChat, offlinePlan } from './offlineAi';
 import type { Profile } from '../data/types';
 
 // ── Provider & Model types ────────────────────────────────────────────────────
 
-export type AiProvider = 'gemini' | 'groq' | 'anthropic';
+export type AiProvider = 'offline' | 'gemini' | 'groq' | 'anthropic';
+
+/** Der Offline-Modus braucht keinen API-Schlüssel. */
+export function providerNeedsKey(provider: AiProvider): boolean {
+  return provider !== 'offline';
+}
 
 export const PROVIDER_LABELS: Record<AiProvider, string> = {
+  offline: '📴 Offline-Coach',
   gemini: '🆓 Google Gemini',
   groq: '🆓 Groq (LLaMA)',
   anthropic: '💳 Anthropic (Claude)',
 };
 
 export const PROVIDER_DESCRIPTIONS: Record<AiProvider, string> = {
+  offline: 'Ohne Internet & ohne Schlüssel · eingebautes Fitness-Wissen',
   gemini: 'Kostenlos · 1.500 Anfragen/Tag · aistudio.google.com',
   groq: 'Kostenlos · Sehr schnell · console.groq.com',
   anthropic: 'Kostenpflichtig · ~€0,001/Nachricht · console.anthropic.com',
 };
 
 export const PROVIDER_KEY_PLACEHOLDER: Record<AiProvider, string> = {
+  offline: '',
   gemini: 'AIza…',
   groq: 'gsk_…',
   anthropic: 'sk-ant-…',
 };
 
 export const PROVIDER_MODELS: Record<AiProvider, { id: string; label: string }[]> = {
+  offline: [{ id: 'offline-coach', label: 'gAIn Offline-Coach' }],
   gemini: [
     { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (empfohlen)' },
     { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
@@ -239,6 +251,7 @@ export async function sendMessage(
   history: AiMessage[],
   profile: Profile | null
 ): Promise<string> {
+  if (provider === 'offline') return offlineChat(history, profile);
   const systemPrompt = buildSystemPrompt(profile);
   switch (provider) {
     case 'gemini':
@@ -315,6 +328,8 @@ export async function generatePlan(
   userRequest: string,
   profile: Profile | null
 ): Promise<GeneratedPlan[]> {
+  if (provider === 'offline') return offlinePlan(userRequest, profile);
+
   const systemPrompt = buildPlanPrompt(profile);
   const history: AiMessage[] = [{ role: 'user', content: userRequest }];
 
@@ -400,20 +415,25 @@ REGELN:
 
 /**
  * Erstellt eine KI-Auswertung aus den aufbereiteten Trainingsdaten.
- * `analyticsText` kommt aus analysis.formatAnalyticsForAi().
+ * Im Offline-Modus rein lokal, sonst über den gewählten KI-Anbieter.
  */
 export async function generateAnalysis(
   provider: AiProvider,
   apiKey: string,
   modelId: string,
-  analyticsText: string,
+  data: AnalyticsData,
   profile: Profile | null
 ): Promise<string> {
+  if (provider === 'offline') return offlineAnalysis(data, profile);
+
   const systemPrompt = buildAnalysisSystemPrompt(profile);
   const history: AiMessage[] = [
     {
       role: 'user',
-      content: `Hier sind meine Trainingsdaten. Bitte analysiere sie:\n\n${analyticsText}`,
+      content: `Hier sind meine Trainingsdaten. Bitte analysiere sie:\n\n${formatAnalyticsForAi(
+        data,
+        profile
+      )}`,
     },
   ];
   switch (provider) {

@@ -12,11 +12,15 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { BarChart, type BarDatum } from '../../components/BarChart';
 import { xAlert } from '../../lib/presentation/alert';
-import { generateAnalysis, PROVIDER_MODELS, type AiProvider } from '../../lib/application/ai';
+import {
+  generateAnalysis,
+  PROVIDER_MODELS,
+  providerNeedsKey,
+  type AiProvider,
+} from '../../lib/application/ai';
 import {
   buildQuickSummary,
   collectAnalytics,
-  formatAnalyticsForAi,
   type AnalyticsData,
 } from '../../lib/application/analysis';
 import { colors, spacing } from '../../constants/theme';
@@ -62,11 +66,11 @@ export default function ProgressScreen() {
         return;
       }
 
-      const provider = ((await repo.getSetting(db, 'ai_provider')) as AiProvider) || 'gemini';
+      const provider = ((await repo.getSetting(db, 'ai_provider')) as AiProvider) || 'offline';
       const model = (await repo.getSetting(db, 'ai_model')) || PROVIDER_MODELS[provider][0].id;
-      const key = await repo.getSetting(db, `ai_key_${provider}`);
+      const key = (await repo.getSetting(db, `ai_key_${provider}`)) ?? '';
 
-      if (!key) {
+      if (providerNeedsKey(provider) && !key) {
         setAiText('');
         setAiFallback(buildQuickSummary(d));
         return;
@@ -78,13 +82,7 @@ export default function ProgressScreen() {
       setAiError(null);
       try {
         const profile = await repo.getProfile(db);
-        const text = await generateAnalysis(
-          provider,
-          key,
-          model,
-          formatAnalyticsForAi(d, profile),
-          profile
-        );
+        const text = await generateAnalysis(provider, key, model, d, profile);
         setAiText(text);
         setAiFallback('');
         await Promise.all([

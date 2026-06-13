@@ -18,6 +18,7 @@ import {
   PROVIDER_LABELS,
   PROVIDER_MODELS,
   QUICK_PROMPTS,
+  providerNeedsKey,
   sendMessage,
   type AiMessage,
   type AiProvider,
@@ -30,8 +31,8 @@ import type { ChatMessage, Profile } from '../../lib/data/types';
 export default function AiScreen() {
   const { db } = useDb();
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [provider, setProvider] = useState<AiProvider>('gemini');
-  const [modelId, setModelId] = useState<string>('gemini-2.0-flash');
+  const [provider, setProvider] = useState<AiProvider>('offline');
+  const [modelId, setModelId] = useState<string>('offline-coach');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +47,7 @@ export default function AiScreen() {
       repo.listChatMessages(db),
       repo.getProfile(db),
     ]);
-    const prov = (savedProvider as AiProvider) || 'gemini';
+    const prov = (savedProvider as AiProvider) || 'offline';
     setProvider(prov);
     if (savedModel) setModelId(savedModel);
     const key = await repo.getSetting(db, `ai_key_${prov}`);
@@ -69,7 +70,8 @@ export default function AiScreen() {
 
   const handleSend = async (text?: string) => {
     const content = (text ?? inputText).trim();
-    if (!content || !apiKey || isLoading || !db) return;
+    if (!content || isLoading || !db) return;
+    if (providerNeedsKey(provider) && !apiKey) return;
     setInputText('');
 
     const userMsgId = await repo.insertChatMessage(db, 'user', content);
@@ -87,7 +89,7 @@ export default function AiScreen() {
         role: m.role,
         content: m.content,
       }));
-      const reply = await sendMessage(provider, apiKey, modelId, history, profile);
+      const reply = await sendMessage(provider, apiKey ?? '', modelId, history, profile);
       const asstMsgId = await repo.insertChatMessage(db, 'assistant', reply);
       setMessages((prev) => [
         ...prev,
@@ -116,7 +118,7 @@ export default function AiScreen() {
     ]);
   };
 
-  if (!apiKey) {
+  if (providerNeedsKey(provider) && !apiKey) {
     return <NoApiKeyView />;
   }
 

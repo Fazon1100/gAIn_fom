@@ -18,7 +18,9 @@ import { colors, spacing } from '../../constants/theme';
 import { useDb } from '../../context/DbProvider';
 import {
   PLAN_SUGGESTIONS,
+  PROVIDER_MODELS,
   generatePlan,
+  providerNeedsKey,
   type AiProvider,
   type GeneratedPlan,
 } from '../../lib/application/ai';
@@ -78,12 +80,12 @@ export default function PlansScreen() {
   const openGenerator = async () => {
     if (!db) return;
     const providerStr = await repo.getSetting(db, 'ai_provider');
-    const prov = (providerStr || 'gemini') as AiProvider;
+    const prov = (providerStr || 'offline') as AiProvider;
     const key = await repo.getSetting(db, `ai_key_${prov}`);
-    if (!key) {
+    if (providerNeedsKey(prov) && !key) {
       xAlert(
         'KI nicht eingerichtet',
-        'Bitte hinterlege zuerst einen API-Schlüssel im Profil-Tab unter "KI-Einstellungen".',
+        'Bitte wähle im Profil-Tab unter „KI-Einstellungen" den Offline-Coach oder hinterlege einen API-Schlüssel.',
         [{ text: 'OK' }]
       );
       return;
@@ -101,12 +103,12 @@ export default function PlansScreen() {
       repo.getSetting(db, 'ai_model'),
     ]);
 
-    const provider = (providerStr || 'gemini') as AiProvider;
-    const model = modelId || 'gemini-2.0-flash';
-    const apiKey = await repo.getSetting(db, `ai_key_${provider}`);
+    const provider = (providerStr || 'offline') as AiProvider;
+    const model = modelId || PROVIDER_MODELS[provider][0].id;
+    const apiKey = (await repo.getSetting(db, `ai_key_${provider}`)) ?? '';
 
-    if (!apiKey) {
-      xAlert('Fehler', 'API-Schlüssel fehlt. Bitte im Profil eintragen.');
+    if (providerNeedsKey(provider) && !apiKey) {
+      xAlert('Fehler', 'API-Schlüssel fehlt. Bitte im Profil eintragen oder Offline-Coach wählen.');
       return;
     }
 
