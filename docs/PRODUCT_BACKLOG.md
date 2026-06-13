@@ -82,9 +82,7 @@ Schätzung in Story Points (SP).
 
 **US-18** ✅ (3 SP) – Als Erstnutzer möchte ich ein Onboarding, um schnell startklar zu sein.
 
-**US-19** ✅ (3 SP) – Als Vorführende:r möchte ich Demo-Daten laden können, um die App gefüllt zu zeigen.
-
-**US-20** ✅ (2 SP) – Als Nutzer möchte ich ein Backup exportieren und alle Daten zurücksetzen können.
+**US-19** ✅ (2 SP) – Als Nutzer möchte ich ein Backup exportieren und alle Daten zurücksetzen können.
 
 ### E8 – Qualität & Architektur
 

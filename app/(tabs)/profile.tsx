@@ -24,7 +24,6 @@ import {
   providerNeedsKey,
   type AiProvider,
 } from '../../lib/application/ai';
-import { loadDemoData } from '../../lib/application/demoData';
 import * as repo from '../../lib/data/repository';
 
 const ALL_PROVIDERS: AiProvider[] = ['offline', 'gemini', 'groq', 'anthropic'];
@@ -141,26 +140,6 @@ export default function ProfileScreen() {
       note: goalNote.trim() === '' ? null : goalNote.trim(),
     });
     xAlert('Gespeichert', 'Dein Ziel wurde aktualisiert. Die KI berücksichtigt es ab jetzt.');
-  };
-
-  const handleLoadDemo = () => {
-    xAlert(
-      'Demo-Daten laden?',
-      'Ersetzt alle aktuellen Daten durch ein Beispielprofil mit ~8 Wochen Trainingshistorie. Ideal für eine Live-Demo.',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Laden',
-          onPress: async () => {
-            if (!db) return;
-            await loadDemoData(db);
-            refresh();
-            load();
-            xAlert('Fertig', 'Demo-Daten geladen. Schau dir den Fortschritt-Tab an!');
-          },
-        },
-      ]
-    );
   };
 
   const handleReset = () => {
@@ -353,14 +332,6 @@ export default function ProfileScreen() {
       {/* ── Daten & App ────────────────────────────── */}
       <SectionHeader icon="database" title="Daten & App" />
       <View style={styles.card}>
-        <Pressable style={styles.dataRow} onPress={handleLoadDemo}>
-          <FontAwesome name="magic" size={16} color={colors.accent} style={styles.dataIcon} />
-          <View style={styles.dataBody}>
-            <Text style={styles.dataTitle}>Demo-Daten laden</Text>
-            <Text style={styles.dataSub}>Beispielprofil + 8 Wochen Historie für die Präsentation</Text>
-          </View>
-          <FontAwesome name="chevron-right" size={13} color={colors.muted} />
-        </Pressable>
         <Pressable style={styles.dataRow} onPress={handleExport}>
           <FontAwesome name="share-square-o" size={16} color={colors.accent} style={styles.dataIcon} />
           <View style={styles.dataBody}>

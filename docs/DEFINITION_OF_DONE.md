@@ -40,7 +40,7 @@ Ein Backlog-Item ist **fertig**, wenn:
 Das Gesamtprodukt ist **abnahmebereit**, wenn zusätzlich:
 
 - [ ] Onboarding für Erstnutzer:innen vorhanden
-- [ ] Demo-Daten reproduzierbar ladbar (Live-Demo)
+- [ ] App startet leer (keine Testdaten) und ist sofort bedienbar
 - [ ] App ohne Internet/Account vollständig bedienbar
 - [ ] Datenexport (Backup) möglich
 - [ ] `app.json` store-tauglich konfiguriert (Icons, Splash, Bundle-IDs, Version)

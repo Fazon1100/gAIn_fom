@@ -32,9 +32,10 @@ npm install
 npx expo start
 ```
 
-Danach den QR-Code mit der Kamera/Expo Go scannen. Die App startet mit einem
-**Onboarding**; alternativ im Profil → „Daten & App" **Demo-Daten laden**, um sofort
-eine gefüllte App mit ~8 Wochen Historie zu zeigen.
+Danach den QR-Code mit der Kamera/Expo Go scannen. Beim ersten Start führt ein
+**Onboarding** durch Profil, Ziel und KI-Setup. Anschließend legst du im Tab „Pläne"
+deinen ersten Trainingsplan an (oder lässt ihn von der KI erstellen) und startest dein
+Training.
 
 > Die KI läuft standardmäßig im **Offline-Coach**-Modus – kein API-Schlüssel nötig.
 > Optional kann im Profil ein kostenloser Anbieter (Google Gemini, Groq) hinterlegt werden.

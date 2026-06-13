@@ -46,7 +46,7 @@ Sprintlänge: 2 Wochen. Die Zuordnung der User Stories bezieht sich auf das
 **Sprint-Ziel:** Demo-sicher, offline-fähig, getestet – bereit zur Abnahme.
 
 - US-12 (Offline-KI), US-03, US-04, US-05 (Session-UX)
-- US-18 (Onboarding), US-19 (Demo-Daten), US-20 (Export/Reset)
+- US-18 (Onboarding), US-19 (Export/Reset)
 - US-22 (Tests & CI), App-Konfiguration (`app.json`)
 
 **Review:** Vollständige Offline-Nutzung, Live-Demo mit Demo-Daten, grüne CI.

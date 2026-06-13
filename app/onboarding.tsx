@@ -67,7 +67,11 @@ export default function Onboarding() {
           ))}
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
           {step === 0 && (
             <View style={styles.welcome}>
               <Text style={styles.brand}>gAIn</Text>
@@ -172,6 +176,7 @@ const styles = StyleSheet.create({
   progress: { flexDirection: 'row', gap: 6, justifyContent: 'center', paddingTop: spacing.md, paddingBottom: spacing.sm },
   dot: { width: 28, height: 4, borderRadius: 2, backgroundColor: colors.border },
   dotActive: { backgroundColor: colors.accent },
+  scroll: { flex: 1 },
   content: { padding: spacing.lg, flexGrow: 1, justifyContent: 'center' },
 
   welcome: { alignItems: 'center' },
