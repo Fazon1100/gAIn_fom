@@ -2,15 +2,14 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
-import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../constants/theme';
 import { useDb } from '../context/DbProvider';
 import * as repo from '../lib/data/repository';
@@ -142,11 +141,18 @@ export default function Onboarding() {
 
       {/* Aktionen – fester Footer außerhalb des ScrollViews (auf iOS zuverlässig tappbar) */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
-        <PrimaryButton title={primaryTitle} onPress={onPrimary} />
+        <TouchableOpacity
+          style={styles.primaryBtn}
+          onPress={onPrimary}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+        >
+          <Text style={styles.primaryBtnText}>{primaryTitle}</Text>
+        </TouchableOpacity>
         {step > 0 && (
-          <Pressable onPress={back} style={styles.backLink} hitSlop={10}>
+          <TouchableOpacity onPress={back} style={styles.backLink} hitSlop={10} accessibilityRole="button">
             <Text style={styles.backText}>Zurück</Text>
-          </Pressable>
+          </TouchableOpacity>
         )}
       </View>
     </View>
@@ -224,6 +230,14 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: colors.bg,
   },
+  primaryBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnText: { color: '#0d0d12', fontSize: 17, fontWeight: '800' },
   backLink: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 24 },
   backText: { color: colors.muted, fontSize: 15, fontWeight: '600' },
 });
