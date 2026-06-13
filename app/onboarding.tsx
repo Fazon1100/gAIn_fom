@@ -2,8 +2,6 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -70,24 +68,21 @@ export default function Onboarding() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + spacing.md }]}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {/* Fortschrittsanzeige */}
-        <View style={styles.progress}>
-          {STEPS.map((_, i) => (
-            <View key={i} style={[styles.dot, i <= step && styles.dotActive]} />
-          ))}
-        </View>
+      {/* Fortschrittsanzeige */}
+      <View style={styles.progress}>
+        {STEPS.map((_, i) => (
+          <View key={i} style={[styles.dot, i <= step && styles.dotActive]} />
+        ))}
+      </View>
 
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.stepWrap}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.stepWrap}>
             {step === 0 && (
               <View style={styles.welcome}>
                 <Text style={styles.brand}>gAIn</Text>
@@ -143,18 +138,17 @@ export default function Onboarding() {
               </View>
             )}
           </View>
+      </ScrollView>
 
-          {/* Aktionen – im Scroll-Inhalt, garantiert tappbar */}
-          <View style={styles.actions}>
-            <PrimaryButton title={primaryTitle} onPress={onPrimary} />
-            {step > 0 && (
-              <Pressable onPress={back} style={styles.backLink} hitSlop={8}>
-                <Text style={styles.backText}>Zurück</Text>
-              </Pressable>
-            )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      {/* Aktionen – fester Footer außerhalb des ScrollViews (auf iOS zuverlässig tappbar) */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
+        <PrimaryButton title={primaryTitle} onPress={onPrimary} />
+        {step > 0 && (
+          <Pressable onPress={back} style={styles.backLink} hitSlop={10}>
+            <Text style={styles.backText}>Zurück</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -222,7 +216,14 @@ const styles = StyleSheet.create({
   aiCardText: { color: colors.text, fontSize: 14, lineHeight: 21, flex: 1 },
   bold: { fontWeight: '700', color: colors.accent },
 
-  actions: { marginTop: spacing.xl, gap: 4 },
-  backLink: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 24 },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    gap: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.bg,
+  },
+  backLink: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 24 },
   backText: { color: colors.muted, fontSize: 15, fontWeight: '600' },
 });
