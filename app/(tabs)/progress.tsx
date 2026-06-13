@@ -15,8 +15,8 @@ import { xAlert } from '../../lib/presentation/alert';
 import {
   generateAnalysis,
   PROVIDER_MODELS,
-  providerNeedsKey,
-  type AiProvider,
+  effectiveKey,
+  normalizeProvider,
 } from '../../lib/application/ai';
 import {
   buildQuickSummary,
@@ -66,11 +66,11 @@ export default function ProgressScreen() {
         return;
       }
 
-      const provider = ((await repo.getSetting(db, 'ai_provider')) as AiProvider) || 'offline';
+      const provider = normalizeProvider(await repo.getSetting(db, 'ai_provider'));
       const model = (await repo.getSetting(db, 'ai_model')) || PROVIDER_MODELS[provider][0].id;
-      const key = (await repo.getSetting(db, `ai_key_${provider}`)) ?? '';
+      const key = effectiveKey(provider, await repo.getSetting(db, `ai_key_${provider}`));
 
-      if (providerNeedsKey(provider) && !key) {
+      if (!key) {
         setAiText('');
         setAiFallback(buildQuickSummary(d));
         return;

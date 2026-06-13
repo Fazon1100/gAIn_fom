@@ -18,11 +18,12 @@ Alle diese Daten liegen in einer lokalen SQLite-Datenbank auf dem Gerät.
 
 ## Übermittlung an Dritte
 
-- Im **Offline-Coach-Modus** verlassen **keine** Daten das Gerät.
-- Wählst du einen **externen KI-Anbieter** (Google Gemini, Groq oder Anthropic) und
-  hinterlegst einen API-Schlüssel, werden deine Eingaben (Chat-Nachrichten bzw.
-  aggregierte Trainingsdaten für die Analyse) zur Beantwortung an den jeweiligen
-  Anbieter gesendet. Es gelten dann dessen Datenschutzbestimmungen.
+- Für die KI-Funktionen (Chat, Trainingsplan-Generator, Fortschrittsanalyse) werden
+  deine Eingaben bzw. aggregierte Trainingsdaten an den gewählten **KI-Anbieter**
+  gesendet (standardmäßig **Groq**, optional Google Gemini oder Anthropic). Es gelten
+  dann dessen Datenschutzbestimmungen.
+- Alle übrigen Daten verbleiben lokal auf dem Gerät; ohne Nutzung der KI-Funktionen
+  werden keine Daten übertragen.
 
 ## Speicherdauer & Löschung
 

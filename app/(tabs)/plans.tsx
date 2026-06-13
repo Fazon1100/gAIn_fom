@@ -19,9 +19,9 @@ import { useDb } from '../../context/DbProvider';
 import {
   PLAN_SUGGESTIONS,
   PROVIDER_MODELS,
+  effectiveKey,
   generatePlan,
-  providerNeedsKey,
-  type AiProvider,
+  normalizeProvider,
   type GeneratedPlan,
 } from '../../lib/application/ai';
 import * as repo from '../../lib/data/repository';
@@ -79,13 +79,12 @@ export default function PlansScreen() {
 
   const openGenerator = async () => {
     if (!db) return;
-    const providerStr = await repo.getSetting(db, 'ai_provider');
-    const prov = (providerStr || 'offline') as AiProvider;
-    const key = await repo.getSetting(db, `ai_key_${prov}`);
-    if (providerNeedsKey(prov) && !key) {
+    const prov = normalizeProvider(await repo.getSetting(db, 'ai_provider'));
+    const key = effectiveKey(prov, await repo.getSetting(db, `ai_key_${prov}`));
+    if (!key) {
       xAlert(
         'KI nicht eingerichtet',
-        'Bitte wähle im Profil-Tab unter „KI-Einstellungen" den Offline-Coach oder hinterlege einen API-Schlüssel.',
+        'Bitte hinterlege im Profil-Tab unter „KI-Einstellungen" einen API-Schlüssel.',
         [{ text: 'OK' }]
       );
       return;
@@ -103,12 +102,12 @@ export default function PlansScreen() {
       repo.getSetting(db, 'ai_model'),
     ]);
 
-    const provider = (providerStr || 'offline') as AiProvider;
+    const provider = normalizeProvider(providerStr);
     const model = modelId || PROVIDER_MODELS[provider][0].id;
-    const apiKey = (await repo.getSetting(db, `ai_key_${provider}`)) ?? '';
+    const apiKey = effectiveKey(provider, await repo.getSetting(db, `ai_key_${provider}`));
 
-    if (providerNeedsKey(provider) && !apiKey) {
-      xAlert('Fehler', 'API-Schlüssel fehlt. Bitte im Profil eintragen oder Offline-Coach wählen.');
+    if (!apiKey) {
+      xAlert('Fehler', 'API-Schlüssel fehlt. Bitte im Profil eintragen.');
       return;
     }
 

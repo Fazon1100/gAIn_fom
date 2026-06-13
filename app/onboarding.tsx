@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
 import { colors, spacing } from '../constants/theme';
 import { useDb } from '../context/DbProvider';
+import { DEFAULT_MODEL, DEFAULT_PROVIDER } from '../lib/application/ai';
 import * as repo from '../lib/data/repository';
 
 const STEPS = ['Willkommen', 'Profil', 'Dein Ziel', 'KI-Coach'];
@@ -52,8 +53,8 @@ export default function Onboarding() {
       targetWeight: gt != null && !Number.isNaN(gt) ? gt : null,
       note: goalNote.trim() === '' ? null : goalNote.trim(),
     });
-    await repo.setSetting(db, 'ai_provider', 'offline');
-    await repo.setSetting(db, 'ai_model', 'offline-coach');
+    await repo.setSetting(db, 'ai_provider', DEFAULT_PROVIDER);
+    await repo.setSetting(db, 'ai_model', DEFAULT_MODEL);
     await repo.setSetting(db, 'onboarding_done', '1');
     refresh();
     router.replace('/(tabs)/train');
@@ -93,7 +94,7 @@ export default function Onboarding() {
                   <Feature icon="list-alt" text="Trainingspläne – selbst oder von der KI erstellt" />
                   <Feature icon="bolt" text="Einheiten live tracken (Sätze, Wdh., Gewicht)" />
                   <Feature icon="line-chart" text="Statistiken, Diagramme & KI-Analyse" />
-                  <Feature icon="magic" text="KI-Coach – funktioniert auch offline" />
+                  <Feature icon="magic" text="KI-Coach – sofort einsatzbereit" />
                 </View>
               </View>
             )}
@@ -125,13 +126,13 @@ export default function Onboarding() {
 
             {step === 3 && (
               <View>
-                <StepHeader title="Dein KI-Coach ist startklar" sub="Standardmäßig läuft der Offline-Coach – ohne Schlüssel, ohne Internet." />
+                <StepHeader title="Dein KI-Coach ist startklar" sub="Die KI ist bereits vorkonfiguriert – kein Setup nötig." />
                 <View style={styles.aiCard}>
                   <FontAwesome name="check-circle" size={20} color={colors.accent} />
                   <Text style={styles.aiCardText}>
-                    Der <Text style={styles.bold}>Offline-Coach</Text> ist aktiv und beantwortet Fragen zu
-                    Training & Ernährung sofort. Für noch ausführlichere Antworten kannst du später im
-                    Profil einen kostenlosen KI-Anbieter (Google Gemini oder Groq) hinterlegen.
+                    Dein KI-Coach läuft über <Text style={styles.bold}>Groq</Text> und ist sofort
+                    einsatzbereit – Chat, Trainingsplan-Generator und Fortschrittsanalyse. Im Profil
+                    kannst du optional einen anderen Anbieter (Gemini, Claude) hinterlegen.
                   </Text>
                 </View>
               </View>

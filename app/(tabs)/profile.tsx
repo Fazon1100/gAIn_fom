@@ -17,16 +17,20 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { colors, spacing } from '../../constants/theme';
 import { useDb } from '../../context/DbProvider';
 import {
+  DEFAULT_MODEL,
+  DEFAULT_PROVIDER,
   PROVIDER_DESCRIPTIONS,
   PROVIDER_KEY_PLACEHOLDER,
   PROVIDER_LABELS,
   PROVIDER_MODELS,
-  providerNeedsKey,
+  builtInKey,
+  effectiveKey,
+  normalizeProvider,
   type AiProvider,
 } from '../../lib/application/ai';
 import * as repo from '../../lib/data/repository';
 
-const ALL_PROVIDERS: AiProvider[] = ['offline', 'gemini', 'groq', 'anthropic'];
+const ALL_PROVIDERS: AiProvider[] = ['groq', 'gemini', 'anthropic'];
 
 export default function ProfileScreen() {
   const { db, refreshToken, refresh } = useDb();
@@ -38,10 +42,10 @@ export default function ProfileScreen() {
   const [notes, setNotes] = useState('');
 
   // AI Settings
-  const [provider, setProvider] = useState<AiProvider>('offline');
+  const [provider, setProvider] = useState<AiProvider>(DEFAULT_PROVIDER);
   const [apiKey, setApiKey] = useState('');
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
-  const [modelId, setModelId] = useState<string>('offline-coach');
+  const [modelId, setModelId] = useState<string>(DEFAULT_MODEL);
 
   // Einzelnes Ziel
   const [goalTitle, setGoalTitle] = useState('');
@@ -68,9 +72,9 @@ export default function ProfileScreen() {
     setGoalTitle(p.goalTitle ?? '');
     setGoalTarget(p.goalTargetWeight != null ? String(p.goalTargetWeight) : '');
     setGoalNote(p.goalNote ?? '');
-    const prov = (savedProvider as AiProvider) || 'offline';
+    const prov = normalizeProvider(savedProvider);
     setProvider(prov);
-    if (savedModel) setModelId(savedModel);
+    setModelId(savedModel || PROVIDER_MODELS[prov][0].id);
     setApiKey(await loadKeyForProvider(prov));
   }, [db, loadKeyForProvider]);
 
@@ -114,8 +118,8 @@ export default function ProfileScreen() {
   const saveAiSettings = async () => {
     if (!db) return;
     const key = apiKey.trim();
-    if (providerNeedsKey(provider) && !key) {
-      xAlert('Hinweis', 'Bitte einen API-Schlüssel eingeben oder den Offline-Coach wählen.');
+    if (!effectiveKey(provider, key)) {
+      xAlert('Hinweis', 'Bitte einen API-Schlüssel eingeben.');
       return;
     }
     const writes = [
@@ -236,64 +240,63 @@ export default function ProfileScreen() {
           </Pressable>
         ))}
 
-        {/* API Key – nur bei Anbietern, die einen Schlüssel benötigen */}
-        {providerNeedsKey(provider) ? (
-          <>
-            <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>
-              API-Schlüssel für {PROVIDER_LABELS[provider]}
-            </Text>
-            <Text style={styles.helpText}>
-              {provider === 'gemini' && (
-                <>Kostenlos unter <Text style={styles.link}>aistudio.google.com</Text> → „Get API key"</>
-              )}
-              {provider === 'groq' && (
-                <>Kostenlos unter <Text style={styles.link}>console.groq.com</Text> → „API Keys"</>
-              )}
-              {provider === 'anthropic' && (
-                <>Bezahlt unter <Text style={styles.link}>console.anthropic.com</Text> → „API Keys"</>
-              )}
-            </Text>
-            <View style={styles.apiKeyRow}>
-              <TextInput
-                style={styles.apiKeyInput}
-                value={apiKey}
-                onChangeText={setApiKey}
-                placeholder={PROVIDER_KEY_PLACEHOLDER[provider]}
-                placeholderTextColor={colors.muted}
-                secureTextEntry={!apiKeyVisible}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Pressable style={styles.eyeBtn} onPress={() => setApiKeyVisible((v) => !v)}>
-                <FontAwesome name={apiKeyVisible ? 'eye-slash' : 'eye'} size={16} color={colors.muted} />
-              </Pressable>
-            </View>
-
-            {/* Modell */}
-            <Text style={styles.fieldLabel}>Modell</Text>
-            <View style={styles.modelPicker}>
-              {currentModels.map((m) => (
-                <Pressable
-                  key={m.id}
-                  style={[styles.modelBtn, modelId === m.id && styles.modelBtnActive]}
-                  onPress={() => setModelId(m.id)}
-                >
-                  <Text style={[styles.modelBtnText, modelId === m.id && styles.modelBtnTextActive]}>
-                    {m.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </>
-        ) : (
+        {/* Hinweis: Groq ist vorkonfiguriert */}
+        {provider === 'groq' && builtInKey('groq') !== '' && (
           <View style={styles.offlineNote}>
             <FontAwesome name="check-circle" size={14} color={colors.accent} />
             <Text style={styles.offlineNoteText}>
-              Kein Schlüssel nötig – der Offline-Coach nutzt eingebautes Wissen und funktioniert ohne
-              Internet. Ideal für den schnellen Start und Demos.
+              Groq ist bereits vorkonfiguriert – du kannst sofort loslegen. Ein eigener Schlüssel ist
+              optional.
             </Text>
           </View>
         )}
+
+        {/* API Key */}
+        <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>
+          API-Schlüssel für {PROVIDER_LABELS[provider]}
+        </Text>
+        <Text style={styles.helpText}>
+          {provider === 'gemini' && (
+            <>Kostenlos unter <Text style={styles.link}>aistudio.google.com</Text> → „Get API key"</>
+          )}
+          {provider === 'groq' && (
+            <>Optional · kostenlos unter <Text style={styles.link}>console.groq.com</Text> → „API Keys"</>
+          )}
+          {provider === 'anthropic' && (
+            <>Bezahlt unter <Text style={styles.link}>console.anthropic.com</Text> → „API Keys"</>
+          )}
+        </Text>
+        <View style={styles.apiKeyRow}>
+          <TextInput
+            style={styles.apiKeyInput}
+            value={apiKey}
+            onChangeText={setApiKey}
+            placeholder={PROVIDER_KEY_PLACEHOLDER[provider]}
+            placeholderTextColor={colors.muted}
+            secureTextEntry={!apiKeyVisible}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Pressable style={styles.eyeBtn} onPress={() => setApiKeyVisible((v) => !v)}>
+            <FontAwesome name={apiKeyVisible ? 'eye-slash' : 'eye'} size={16} color={colors.muted} />
+          </Pressable>
+        </View>
+
+        {/* Modell */}
+        <Text style={styles.fieldLabel}>Modell</Text>
+        <View style={styles.modelPicker}>
+          {currentModels.map((m) => (
+            <Pressable
+              key={m.id}
+              style={[styles.modelBtn, modelId === m.id && styles.modelBtnActive]}
+              onPress={() => setModelId(m.id)}
+            >
+              <Text style={[styles.modelBtnText, modelId === m.id && styles.modelBtnTextActive]}>
+                {m.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
         <PrimaryButton title="KI-Einstellungen speichern" onPress={saveAiSettings} />
       </View>

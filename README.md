@@ -1,7 +1,7 @@
 # gAIn 💪🤖
 
 **Smarter Trainingsbegleiter** – plane Workouts, tracke jeden Satz und erhalte eine
-KI-gestützte Auswertung deines Fortschritts. Funktioniert vollständig **offline**.
+KI-gestützte Auswertung deines Fortschritts. KI (Groq) ist **vorkonfiguriert** – sofort startklar.
 
 ![CI](https://github.com/Fazon1100/gAIn_fom/actions/workflows/ci.yml/badge.svg)
 
@@ -18,10 +18,10 @@ KI-gestützte Auswertung deines Fortschritts. Funktioniert vollständig **offlin
 | **Live-Session** | „Letztes Mal"-Anzeige, Rekord-Erkennung 🏆, Pausenuhr mit Haptik |
 | **Übungskatalog** | 38 Übungen mit Beschreibung, Ausführung, Tipps & Alternativen |
 | **Pläne** | Eigene Pläne mit Sätzen/Wdh. oder per KI generieren lassen |
-| **KI-Coach** | Chat zu Training & Ernährung – online (Gemini/Groq/Claude) **oder offline** |
+| **KI-Coach** | Chat zu Training & Ernährung – Groq (Standard, vorkonfiguriert), optional Gemini/Claude |
 | **Fortschritt** | Statistiken, Diagramme (Frequenz, Volumen, Muskelgruppen, Kraftverlauf) + KI-Analyse |
 | **Profil & Ziel** | Ein klares Hauptziel, das die KI in allen Funktionen berücksichtigt |
-| **Daten** | Demo-Daten laden, Backup als JSON exportieren, alles lokal & ohne Account |
+| **Daten** | Backup als JSON exportieren, zurücksetzen – alles lokal & ohne Account |
 
 ## 🚀 Schnellstart (Demo auf dem iPhone)
 
@@ -37,8 +37,8 @@ Danach den QR-Code mit der Kamera/Expo Go scannen. Beim ersten Start führt ein
 deinen ersten Trainingsplan an (oder lässt ihn von der KI erstellen) und startest dein
 Training.
 
-> Die KI läuft standardmäßig im **Offline-Coach**-Modus – kein API-Schlüssel nötig.
-> Optional kann im Profil ein kostenloser Anbieter (Google Gemini, Groq) hinterlegt werden.
+> Die KI nutzt standardmäßig **Groq** mit vorkonfiguriertem Schlüssel – kein Setup nötig.
+> Optional kann im Profil ein anderer Anbieter (Google Gemini, Anthropic Claude) hinterlegt werden.
 
 ## 🧱 Architektur
 
@@ -53,7 +53,7 @@ Saubere **Schichtenarchitektur** – Details in [ARCHITECTURE.md](ARCHITECTURE.m
 - **Expo SDK 54** / **React Native 0.81** / **TypeScript**
 - **expo-router** (dateibasiertes Routing)
 - **expo-sqlite** (lokale Persistenz)
-- KI via `fetch` (Google Gemini, Groq, Anthropic) + eingebauter Offline-Modus
+- KI via `fetch` (Groq als Standard, optional Google Gemini & Anthropic)
 
 ## 📜 Skripte
 

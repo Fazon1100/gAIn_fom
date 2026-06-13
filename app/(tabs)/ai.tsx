@@ -15,10 +15,13 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { xAlert } from '../../lib/presentation/alert';
 import {
+  DEFAULT_MODEL,
+  DEFAULT_PROVIDER,
   PROVIDER_LABELS,
   PROVIDER_MODELS,
   QUICK_PROMPTS,
-  providerNeedsKey,
+  effectiveKey,
+  normalizeProvider,
   sendMessage,
   type AiMessage,
   type AiProvider,
@@ -31,8 +34,8 @@ import type { ChatMessage, Profile } from '../../lib/data/types';
 export default function AiScreen() {
   const { db } = useDb();
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [provider, setProvider] = useState<AiProvider>('offline');
-  const [modelId, setModelId] = useState<string>('offline-coach');
+  const [provider, setProvider] = useState<AiProvider>(DEFAULT_PROVIDER);
+  const [modelId, setModelId] = useState<string>(DEFAULT_MODEL);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,10 +50,10 @@ export default function AiScreen() {
       repo.listChatMessages(db),
       repo.getProfile(db),
     ]);
-    const prov = (savedProvider as AiProvider) || 'offline';
+    const prov = normalizeProvider(savedProvider);
     setProvider(prov);
-    if (savedModel) setModelId(savedModel);
-    const key = await repo.getSetting(db, `ai_key_${prov}`);
+    setModelId(savedModel || PROVIDER_MODELS[prov][0].id);
+    const key = effectiveKey(prov, await repo.getSetting(db, `ai_key_${prov}`));
     setApiKey(key);
     setMessages(msgs);
     setProfile(prof);
@@ -70,8 +73,7 @@ export default function AiScreen() {
 
   const handleSend = async (text?: string) => {
     const content = (text ?? inputText).trim();
-    if (!content || isLoading || !db) return;
-    if (providerNeedsKey(provider) && !apiKey) return;
+    if (!content || isLoading || !db || !apiKey) return;
     setInputText('');
 
     const userMsgId = await repo.insertChatMessage(db, 'user', content);
@@ -118,7 +120,7 @@ export default function AiScreen() {
     ]);
   };
 
-  if (providerNeedsKey(provider) && !apiKey) {
+  if (!apiKey) {
     return <NoApiKeyView />;
   }
 
@@ -257,12 +259,13 @@ function NoApiKeyView() {
       <FontAwesome name="key" size={40} color={colors.accent} style={{ marginBottom: spacing.lg }} />
       <Text style={styles.noKeyTitle}>API-Schlüssel fehlt</Text>
       <Text style={styles.noKeyText}>
-        Um den KI-Coach zu nutzen, brauchst du einen kostenlosen Anthropic API-Schlüssel.
+        Normalerweise ist Groq bereits vorkonfiguriert. Falls hier nichts hinterlegt ist, kannst du
+        einen kostenlosen Schlüssel eintragen.
       </Text>
       <View style={styles.noKeyStep}>
         <Text style={styles.noKeyStepNum}>1</Text>
         <Text style={styles.noKeyStepText}>
-          Geh auf <Text style={styles.link}>console.anthropic.com</Text> und erstelle ein kostenloses Konto.
+          Geh auf <Text style={styles.link}>console.groq.com</Text> und erstelle ein kostenloses Konto.
         </Text>
       </View>
       <View style={styles.noKeyStep}>
@@ -276,7 +279,7 @@ function NoApiKeyView() {
         </Text>
       </View>
       <Text style={styles.noKeyHint}>
-        Das Modell „Haiku" ist sehr günstig – ca. $0.001 pro Nachricht.
+        Groq ist kostenlos und sehr schnell.
       </Text>
     </View>
   );

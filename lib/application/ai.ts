@@ -1,48 +1,70 @@
 import { EXERCISES } from './exercises';
 import type { AnalyticsData } from './analysis';
 import { formatAnalyticsForAi } from './analysis';
-import { offlineAnalysis, offlineChat, offlinePlan } from './offlineAi';
 import type { Profile } from '../data/types';
 
 // ── Provider & Model types ────────────────────────────────────────────────────
 
-export type AiProvider = 'offline' | 'gemini' | 'groq' | 'anthropic';
+export type AiProvider = 'groq' | 'gemini' | 'anthropic';
 
-/** Der Offline-Modus braucht keinen API-Schlüssel. */
-export function providerNeedsKey(provider: AiProvider): boolean {
-  return provider !== 'offline';
+/**
+ * Vorkonfigurierter Groq-API-Schlüssel, damit jeder Nutzer die KI sofort ohne
+ * eigene Einrichtung nutzen kann.
+ *
+ * ▸▸▸ HIER DEINEN GROQ-KEY EINTRAGEN (beginnt mit "gsk_…") ◂◂◂
+ * Kostenlos unter https://console.groq.com → "API Keys".
+ * Hinweis: Der Schlüssel ist im Code hinterlegt und damit im Repository sichtbar.
+ */
+export const GROQ_API_KEY = '';
+
+/** Standard-Anbieter & -Modell (Groq, sofort einsatzbereit). */
+export const DEFAULT_PROVIDER: AiProvider = 'groq';
+export const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+
+/** Eingebauter Schlüssel je Anbieter (nur Groq ist vorkonfiguriert). */
+export function builtInKey(provider: AiProvider): string {
+  return provider === 'groq' ? GROQ_API_KEY : '';
+}
+
+/** Liefert den effektiven Schlüssel: selbst hinterlegt oder eingebaut. */
+export function effectiveKey(provider: AiProvider, storedKey: string | null | undefined): string {
+  const stored = (storedKey ?? '').trim();
+  return stored || builtInKey(provider);
+}
+
+/** Wandelt einen gespeicherten Anbieter-Wert sicher um (Fallback: Standard). */
+export function normalizeProvider(value: string | null | undefined): AiProvider {
+  return value === 'groq' || value === 'gemini' || value === 'anthropic'
+    ? value
+    : DEFAULT_PROVIDER;
 }
 
 export const PROVIDER_LABELS: Record<AiProvider, string> = {
-  offline: '📴 Offline-Coach',
+  groq: '⚡ Groq (LLaMA) – Standard',
   gemini: '🆓 Google Gemini',
-  groq: '🆓 Groq (LLaMA)',
   anthropic: '💳 Anthropic (Claude)',
 };
 
 export const PROVIDER_DESCRIPTIONS: Record<AiProvider, string> = {
-  offline: 'Ohne Internet & ohne Schlüssel · eingebautes Fitness-Wissen',
+  groq: 'Vorkonfiguriert · sofort startklar · sehr schnell',
   gemini: 'Kostenlos · 1.500 Anfragen/Tag · aistudio.google.com',
-  groq: 'Kostenlos · Sehr schnell · console.groq.com',
   anthropic: 'Kostenpflichtig · ~€0,001/Nachricht · console.anthropic.com',
 };
 
 export const PROVIDER_KEY_PLACEHOLDER: Record<AiProvider, string> = {
-  offline: '',
-  gemini: 'AIza…',
   groq: 'gsk_…',
+  gemini: 'AIza…',
   anthropic: 'sk-ant-…',
 };
 
 export const PROVIDER_MODELS: Record<AiProvider, { id: string; label: string }[]> = {
-  offline: [{ id: 'offline-coach', label: 'gAIn Offline-Coach' }],
-  gemini: [
-    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (empfohlen)' },
-    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-  ],
   groq: [
     { id: 'llama-3.3-70b-versatile', label: 'LLaMA 3.3 70B (klug)' },
     { id: 'llama-3.1-8b-instant', label: 'LLaMA 3.1 8B (schnellster)' },
+  ],
+  gemini: [
+    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (empfohlen)' },
+    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
   ],
   anthropic: [
     { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku (sparsam)' },
@@ -251,7 +273,6 @@ export async function sendMessage(
   history: AiMessage[],
   profile: Profile | null
 ): Promise<string> {
-  if (provider === 'offline') return offlineChat(history, profile);
   const systemPrompt = buildSystemPrompt(profile);
   switch (provider) {
     case 'gemini':
@@ -328,8 +349,6 @@ export async function generatePlan(
   userRequest: string,
   profile: Profile | null
 ): Promise<GeneratedPlan[]> {
-  if (provider === 'offline') return offlinePlan(userRequest, profile);
-
   const systemPrompt = buildPlanPrompt(profile);
   const history: AiMessage[] = [{ role: 'user', content: userRequest }];
 
@@ -424,8 +443,6 @@ export async function generateAnalysis(
   data: AnalyticsData,
   profile: Profile | null
 ): Promise<string> {
-  if (provider === 'offline') return offlineAnalysis(data, profile);
-
   const systemPrompt = buildAnalysisSystemPrompt(profile);
   const history: AiMessage[] = [
     {
