@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { DbProvider } from '../context/DbProvider';
 import { colors } from '../constants/theme';
 
@@ -22,6 +23,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <ErrorBoundary>
         <DbProvider>
           <ThemeProvider value={navTheme}>
             <StatusBar style="light" />
@@ -47,6 +49,7 @@ export default function RootLayout() {
             </Stack>
           </ThemeProvider>
         </DbProvider>
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

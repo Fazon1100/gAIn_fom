@@ -65,3 +65,9 @@ export type ChatMessage = {
   content: string;
   createdAt: string;
 };
+
+export type BodyWeight = {
+  id: number;
+  weightKg: number;
+  recordedAt: string;
+};

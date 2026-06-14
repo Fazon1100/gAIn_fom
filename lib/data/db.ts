@@ -70,6 +70,12 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   content TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS body_weights (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  weight_kg REAL NOT NULL,
+  recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 export async function migrate(db: SQLiteDatabase) {

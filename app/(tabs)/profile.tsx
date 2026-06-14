@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { xAlert } from '../../lib/presentation/alert';
+import { BarChart, type BarDatum } from '../../components/BarChart';
 import { Field } from '../../components/Field';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { colors, spacing } from '../../constants/theme';
@@ -52,6 +53,10 @@ export default function ProfileScreen() {
   const [goalTarget, setGoalTarget] = useState('');
   const [goalNote, setGoalNote] = useState('');
 
+  // Körpergewicht
+  const [bodyWeights, setBodyWeights] = useState<Awaited<ReturnType<typeof repo.listBodyWeights>>>([]);
+  const [newWeight, setNewWeight] = useState('');
+
   const loadKeyForProvider = useCallback(async (p: AiProvider) => {
     if (!db) return '';
     const key = await repo.getSetting(db, `ai_key_${p}`);
@@ -76,6 +81,7 @@ export default function ProfileScreen() {
     setProvider(prov);
     setModelId(savedModel || PROVIDER_MODELS[prov][0].id);
     setApiKey(await loadKeyForProvider(prov));
+    setBodyWeights(await repo.listBodyWeights(db));
   }, [db, loadKeyForProvider]);
 
   useFocusEffect(
@@ -144,6 +150,41 @@ export default function ProfileScreen() {
       note: goalNote.trim() === '' ? null : goalNote.trim(),
     });
     xAlert('Gespeichert', 'Dein Ziel wurde aktualisiert. Die KI berücksichtigt es ab jetzt.');
+  };
+
+  const addWeight = async () => {
+    if (!db) return;
+    const w = Number(newWeight.replace(',', '.'));
+    if (newWeight.trim() === '' || Number.isNaN(w) || w <= 0) {
+      xAlert('Hinweis', 'Bitte ein gültiges Gewicht in kg eingeben.');
+      return;
+    }
+    await repo.addBodyWeight(db, w);
+    // Aktuelles Profilgewicht mitziehen, damit die KI den neuesten Wert kennt
+    await repo.saveProfile(db, {
+      displayName: displayName.trim() || 'Athlet',
+      heightCm: heightCm.trim() === '' ? null : Number(heightCm.replace(',', '.')),
+      weightKg: w,
+      notes: notes.trim() === '' ? null : notes.trim(),
+    });
+    setNewWeight('');
+    setWeightKg(String(w));
+    setBodyWeights(await repo.listBodyWeights(db));
+  };
+
+  const removeWeight = (id: number) => {
+    xAlert('Eintrag löschen?', undefined, [
+      { text: 'Abbrechen', style: 'cancel' },
+      {
+        text: 'Löschen',
+        style: 'destructive',
+        onPress: async () => {
+          if (!db) return;
+          await repo.deleteBodyWeight(db, id);
+          setBodyWeights(await repo.listBodyWeights(db));
+        },
+      },
+    ]);
   };
 
   const handleReset = () => {
@@ -332,6 +373,59 @@ export default function ProfileScreen() {
         <PrimaryButton title="Ziel speichern" onPress={saveGoal} />
       </View>
 
+      {/* ── Körpergewicht ──────────────────────────── */}
+      <SectionHeader icon="balance-scale" title="Gewichtsverlauf" />
+      <View style={styles.card}>
+        <Text style={styles.helpText}>
+          Trage dein Körpergewicht regelmäßig ein und verfolge den Verlauf. Der letzte Wert fließt in
+          dein Profil und die KI-Beratung ein.
+        </Text>
+        <View style={styles.weightRow}>
+          <TextInput
+            style={styles.weightInput}
+            value={newWeight}
+            onChangeText={setNewWeight}
+            placeholder="z. B. 80.5"
+            placeholderTextColor={colors.muted}
+            keyboardType="decimal-pad"
+          />
+          <Pressable style={styles.weightBtn} onPress={addWeight} accessibilityLabel="Gewicht eintragen">
+            <FontAwesome name="plus" size={16} color="#0d0d12" />
+          </Pressable>
+        </View>
+
+        {bodyWeights.length >= 2 && (
+          <View style={{ marginTop: spacing.md }}>
+            <BarChart
+              data={
+                [...bodyWeights]
+                  .reverse()
+                  .slice(-10)
+                  .map<BarDatum>((b) => ({ label: fmtShortDate(b.recordedAt), value: b.weightKg })) as BarDatum[]
+              }
+              height={100}
+              accent="#45B7D1"
+              format={(n) => String(n)}
+              scrollable
+            />
+          </View>
+        )}
+
+        {bodyWeights.length === 0 ? (
+          <Text style={[styles.helpText, { marginTop: spacing.sm }]}>Noch keine Einträge.</Text>
+        ) : (
+          bodyWeights.slice(0, 6).map((b) => (
+            <View key={b.id} style={styles.weightEntry}>
+              <Text style={styles.weightEntryVal}>{b.weightKg} kg</Text>
+              <Text style={styles.weightEntryDate}>{fmtShortDate(b.recordedAt)}</Text>
+              <Pressable onPress={() => removeWeight(b.id)} hitSlop={8} accessibilityLabel="Eintrag löschen">
+                <FontAwesome name="trash" size={14} color={colors.danger} />
+              </Pressable>
+            </View>
+          ))
+        )}
+      </View>
+
       {/* ── Daten & App ────────────────────────────── */}
       <SectionHeader icon="database" title="Daten & App" />
       <View style={styles.card}>
@@ -377,6 +471,17 @@ function SectionHeader({
   );
 }
 
+function fmtShortDate(iso: string): string {
+  try {
+    return new Date(iso.replace(' ', 'T')).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.md, paddingBottom: 48 },
@@ -400,6 +505,36 @@ const styles = StyleSheet.create({
   },
 
   helpText: { color: colors.muted, fontSize: 13, lineHeight: 19, marginBottom: spacing.sm },
+
+  weightRow: { flexDirection: 'row', gap: 8 },
+  weightInput: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: colors.text,
+    fontSize: 15,
+  },
+  weightBtn: {
+    width: 46,
+    borderRadius: 10,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weightEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  weightEntryVal: { color: colors.text, fontSize: 15, fontWeight: '600', width: 80 },
+  weightEntryDate: { color: colors.muted, fontSize: 13, flex: 1 },
   link: { color: colors.accent, fontWeight: '600' },
   fieldLabel: { color: colors.muted, fontSize: 13, fontWeight: '500', marginBottom: 6, marginTop: 4 },
 

@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type {
+  BodyWeight,
   ChatMessage,
   Profile,
   ProgressWeek,
@@ -369,6 +370,7 @@ export async function resetAllData(db: SQLiteDatabase): Promise<void> {
     DELETE FROM sessions;
     DELETE FROM workout_templates;
     DELETE FROM chat_messages;
+    DELETE FROM body_weights;
     DELETE FROM app_settings;
     UPDATE profile SET display_name = 'Athlet', height_cm = NULL, weight_kg = NULL,
       notes = NULL, goal_title = NULL, goal_target_weight = NULL, goal_note = NULL,
@@ -384,6 +386,7 @@ export async function exportAllData(db: SQLiteDatabase): Promise<string> {
   const sessions = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM sessions');
   const sessionExercises = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM session_exercises');
   const sets = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM sets');
+  const bodyWeights = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM body_weights');
   return JSON.stringify(
     {
       app: 'gAIn',
@@ -395,6 +398,7 @@ export async function exportAllData(db: SQLiteDatabase): Promise<string> {
       sessions,
       sessionExercises,
       sets,
+      bodyWeights,
     },
     null,
     2
@@ -670,4 +674,27 @@ export async function exerciseProgress(
     }
   }
   return Array.from(bySession.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ── Körpergewicht ───────────────────────────────────────────────────────────────
+
+export async function addBodyWeight(db: SQLiteDatabase, weightKg: number): Promise<number> {
+  const res = await db.runAsync('INSERT INTO body_weights (weight_kg) VALUES (?)', weightKg);
+  return Number(res.lastInsertRowId);
+}
+
+export async function listBodyWeights(db: SQLiteDatabase, limit = 60): Promise<BodyWeight[]> {
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    'SELECT * FROM body_weights ORDER BY recorded_at DESC LIMIT ?',
+    limit
+  );
+  return rows.map((r) => ({
+    id: Number(r.id),
+    weightKg: Number(r.weight_kg),
+    recordedAt: String(r.recorded_at),
+  }));
+}
+
+export async function deleteBodyWeight(db: SQLiteDatabase, id: number) {
+  await db.runAsync('DELETE FROM body_weights WHERE id = ?', id);
 }
