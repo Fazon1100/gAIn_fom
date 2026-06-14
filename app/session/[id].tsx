@@ -369,7 +369,10 @@ function SetRowEditor({
         keyboardType="number-pad"
         value={reps}
         editable={!readOnly}
-        onChangeText={setReps}
+        onChangeText={(v) => {
+          setReps(v);
+          onCommit(v, weight);
+        }}
         onEndEditing={() => onCommit(reps, weight)}
         placeholder="–"
         placeholderTextColor={colors.muted}
@@ -379,7 +382,10 @@ function SetRowEditor({
         keyboardType="decimal-pad"
         value={weight}
         editable={!readOnly}
-        onChangeText={setWeight}
+        onChangeText={(v) => {
+          setWeight(v);
+          onCommit(reps, v);
+        }}
         onEndEditing={() => onCommit(reps, weight)}
         placeholder="–"
         placeholderTextColor={colors.muted}
