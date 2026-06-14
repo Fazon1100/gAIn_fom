@@ -1,6 +1,7 @@
 import { EXERCISES } from './exercises';
 import type { AnalyticsData } from './analysis';
 import { formatAnalyticsForAi } from './analysis';
+import { GROQ_KEY } from './secret';
 import type { Profile } from '../data/types';
 
 // ── Provider & Model types ────────────────────────────────────────────────────
@@ -9,13 +10,10 @@ export type AiProvider = 'groq' | 'gemini' | 'anthropic';
 
 /**
  * Vorkonfigurierter Groq-API-Schlüssel, damit jeder Nutzer die KI sofort ohne
- * eigene Einrichtung nutzen kann.
- *
- * ▸▸▸ HIER DEINEN GROQ-KEY EINTRAGEN (beginnt mit "gsk_…") ◂◂◂
- * Kostenlos unter https://console.groq.com → "API Keys".
- * Hinweis: Der Schlüssel ist im Code hinterlegt und damit im Repository sichtbar.
+ * eigene Einrichtung nutzen kann. Der Schlüssel ist obfuskiert hinterlegt
+ * (siehe ./secret) und steht nicht im Klartext im Code.
  */
-export const GROQ_API_KEY = '';
+export const GROQ_API_KEY = GROQ_KEY;
 
 /** Standard-Anbieter & -Modell (Groq, sofort einsatzbereit). */
 export const DEFAULT_PROVIDER: AiProvider = 'groq';
