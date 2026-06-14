@@ -22,6 +22,8 @@ Status: ✅ Done · ⬜ Todo
 | **Datenexport & Zurücksetzen** | Backup als JSON exportieren; lokale Daten zurücksetzen. |
 | **iOS-Kompatibilität** | Expo-Go-Versionsabgleich, GestureHandlerRootView, SafeArea. |
 | **Offline-Coach entfernen** | Nicht funktionierenden Offline-Modus entfernt; KI läuft über Groq. |
+| **Körpergewicht-Tracking** | Gewicht erfassen, Verlaufskurve & Liste; letzter Wert fließt ins Profil. |
+| **Stabilität & Error-Boundary** | App-weite Fehlerabsicherung mit freundlichem Hinweis statt Absturz. |
 
 ## Backlog (Todo)
 
@@ -29,7 +31,6 @@ Status: ✅ Done · ⬜ Todo
 | --- | --- |
 | **Smart Watches Compatible** | Anbindung an Apple Watch / Wear OS (Workout, Sätze, Herzfrequenz). |
 | **Mehrsprachigkeit (DE/EN)** | Vollständige Lokalisierung der App-Texte. |
-| **Körpergewicht-Tracking** | Körpergewicht über Zeit erfassen und als Kurve darstellen. |
 | **Push-Erinnerungen** | Lokale Benachrichtigungen für geplante Einheiten. |
 | **Backup-Import** | Exportiertes JSON-Backup importieren / wiederherstellen. |
 | **Theme umschalten (Dark/Light)** | Umschaltbares Farbschema. |
