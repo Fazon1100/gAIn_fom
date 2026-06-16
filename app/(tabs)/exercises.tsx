@@ -132,12 +132,7 @@ export default function ExercisesScreen() {
         )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryScroll}
-        contentContainerStyle={styles.categoryContent}
-      >
+      <View style={styles.categoryWrap}>
         <Pressable
           style={[styles.chip, selectedCategory === null && styles.chipActive]}
           onPress={() => setSelectedCategory(null)}
@@ -163,7 +158,7 @@ export default function ExercisesScreen() {
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
 
       <FlatList
         data={filtered}
@@ -333,12 +328,12 @@ const styles = StyleSheet.create({
     height: 42,
     fontSize: 15,
   },
-  categoryScroll: { flexGrow: 0, marginBottom: spacing.sm },
-  categoryContent: {
+  categoryWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     paddingHorizontal: spacing.md,
-    paddingTop: 2,
     paddingBottom: spacing.sm,
-    alignItems: 'center',
   },
   chip: {
     paddingHorizontal: 14,
@@ -347,7 +342,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    marginRight: 8,
   },
   chipActive: {
     backgroundColor: colors.accent,
