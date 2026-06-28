@@ -24,6 +24,7 @@ Status: ✅ Done · ⬜ Todo
 | **Offline-Coach entfernen** | Nicht funktionierenden Offline-Modus entfernt; KI läuft über Groq. |
 | **Körpergewicht-Tracking** | Gewicht erfassen, Verlaufskurve & Liste; letzter Wert fließt ins Profil. |
 | **Stabilität & Error-Boundary** | App-weite Fehlerabsicherung mit freundlichem Hinweis statt Absturz. |
+| **Voice-to-Text (Spracheingabe)** | Spracheingabe im KI-Coach via expo-audio + Groq Whisper (Deutsch). |
 
 ## Backlog (Todo)
 
