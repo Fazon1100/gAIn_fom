@@ -461,6 +461,38 @@ export async function generateAnalysis(
   }
 }
 
+// ── Sprache → Text (Groq Whisper) ───────────────────────────────────────────────
+
+/**
+ * Transkribiert eine Audioaufnahme über Groqs Whisper-Endpoint (deutsch).
+ * Nutzt den vorkonfigurierten Groq-Zugang.
+ */
+export async function transcribeAudio(uri: string): Promise<string> {
+  const form = new FormData();
+  // React-Native-FormData-Datei (uri/name/type)
+  form.append('file', { uri, name: 'speech.m4a', type: 'audio/m4a' } as unknown as Blob);
+  form.append('model', 'whisper-large-v3-turbo');
+  form.append('language', 'de');
+  form.append('response_format', 'json');
+
+  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${GROQ_API_KEY}` },
+    body: form,
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    if (response.status === 401) {
+      throw new Error('Groq-Zugang ungültig für die Transkription.');
+    }
+    throw new Error(`Transkription fehlgeschlagen (${response.status}): ${body.slice(0, 150)}`);
+  }
+
+  const data = (await response.json()) as { text?: string };
+  return (data.text ?? '').trim();
+}
+
 export const PLAN_SUGGESTIONS = [
   'Push/Pull/Legs Split (3 Tage)',
   'Oberkörper/Unterkörper Split (2 Tage)',

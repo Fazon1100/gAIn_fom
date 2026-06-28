@@ -36,6 +36,16 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font", "expo-sqlite"]
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "gAIn nutzt das Mikrofon für die Spracheingabe im KI-Coach."
+        }
+      ]
+    ]
   }
 }

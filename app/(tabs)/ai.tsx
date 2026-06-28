@@ -12,6 +12,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
 import { useFocusEffect } from 'expo-router';
 import { xAlert } from '../../lib/presentation/alert';
 import {
@@ -23,6 +29,7 @@ import {
   effectiveKey,
   normalizeProvider,
   sendMessage,
+  transcribeAudio,
   type AiMessage,
   type AiProvider,
 } from '../../lib/application/ai';
@@ -41,6 +48,48 @@ export default function AiScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  // Sprach­eingabe (Voice-to-Text via Groq Whisper)
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+
+  const handleMic = async () => {
+    if (transcribing || isLoading) return;
+    if (recording) {
+      setRecording(false);
+      try {
+        await recorder.stop();
+        const uri = recorder.uri;
+        if (!uri) return;
+        setTranscribing(true);
+        const text = await transcribeAudio(uri);
+        if (text) {
+          setInputText((prev) => (prev ? `${prev} ${text}` : text));
+        } else {
+          xAlert('Hinweis', 'Es wurde nichts erkannt. Bitte sprich etwas deutlicher.');
+        }
+      } catch (e) {
+        xAlert('Fehler', e instanceof Error ? e.message : 'Spracheingabe fehlgeschlagen.');
+      } finally {
+        setTranscribing(false);
+      }
+      return;
+    }
+    try {
+      const perm = await requestRecordingPermissionsAsync();
+      if (!perm.granted) {
+        xAlert('Mikrofon', 'Bitte erlaube den Mikrofon-Zugriff, um die Spracheingabe zu nutzen.');
+        return;
+      }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      setRecording(true);
+    } catch {
+      xAlert('Fehler', 'Aufnahme konnte nicht gestartet werden.');
+    }
+  };
 
   const loadSettings = useCallback(async () => {
     if (!db) return;
@@ -186,11 +235,27 @@ export default function AiScreen() {
 
       {/* Input */}
       <View style={styles.inputRow}>
+        <Pressable
+          style={[styles.micBtn, recording && styles.micBtnActive]}
+          onPress={handleMic}
+          disabled={transcribing || isLoading}
+          accessibilityLabel={recording ? 'Aufnahme stoppen' : 'Spracheingabe starten'}
+        >
+          {transcribing ? (
+            <ActivityIndicator size="small" color={colors.accent} />
+          ) : (
+            <FontAwesome
+              name={recording ? 'stop' : 'microphone'}
+              size={16}
+              color={recording ? '#0d0d12' : colors.accent}
+            />
+          )}
+        </Pressable>
         <TextInput
           style={styles.input}
           value={inputText}
           onChangeText={setInputText}
-          placeholder="Frag deinen KI-Coach …"
+          placeholder={recording ? 'Aufnahme läuft … tippe zum Stoppen' : 'Frag deinen KI-Coach …'}
           placeholderTextColor={colors.muted}
           multiline
           maxLength={2000}
@@ -407,6 +472,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  micBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micBtnActive: { backgroundColor: colors.danger, borderColor: colors.danger },
 
   emptyContainer: { padding: spacing.lg, alignItems: 'center', paddingBottom: 40 },
   emptyIcon: {
